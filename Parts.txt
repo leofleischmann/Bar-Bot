@@ -13,3 +13,5 @@ Riemen https://amzn.eu/d/0mO7GU6
 ESP32 https://amzn.eu/d/cdE9kyt
 
 Power Supply https://amzn.eu/d/2pyoxIf
+
+Servo Motor https://amzn.eu/d/6Y2BayV
