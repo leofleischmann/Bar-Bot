@@ -1,5 +1,6 @@
 # Bar-Bot
 Automatic Cocktail Maker (Work in Progress)
+
 Project startet on 17th November 2024
 
 This is my take on the Automatic Bartender Robot (original: https://github.com/sidlauskaslukas/barbot/tree/master?tab=readme-ov-file)
