@@ -22,3 +22,5 @@ This is my take on the Automatic Bartender Robot (original: https://github.com/s
 - Software for the Raspberry Pi and ESP32
 - Hardware testing
 - Parameter tuning
+
+# Total Hardware cost (not including 3D printing material): ~130€
