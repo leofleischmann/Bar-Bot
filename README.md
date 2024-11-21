@@ -18,10 +18,11 @@ This is my take on the Automatic Bartender Robot (original: https://github.com/s
 - Raspberry Pi Server programmed and functional
 - ESP32 Code functional and taking commands from the Raspberry Pi
 - Basic Web-Interface for testing purposes.
-
-# Currently working on:
 - Software for the Raspberry Pi and ESP32
 - Hardware testing
 - Parameter tuning
 
-# Total Hardware cost (not including 3D printing material): ~130€
+# Currently working on:
+- User Interface
+
+# Total Hardware cost (not including 3D printing material): ~160€
