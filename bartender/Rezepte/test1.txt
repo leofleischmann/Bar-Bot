@@ -1,0 +1,11 @@
+start
+move gin
+wait 500
+servo 1000
+wait 2000
+move rum
+wait 500
+servo 2000
+wait 2000
+move vodka
+done
