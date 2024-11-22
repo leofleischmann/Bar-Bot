@@ -22,8 +22,8 @@ Servo myServo;
 int servoDelay = 1000; // Standardwartezeit in Millisekunden
 
 // WLAN-Einstellungen
-const char* ssid = "MagentaWLAN-E38C";
-const char* password = "93515246204969428314";
+const char* ssid = "ssid";
+const char* password = "password";
 
 // Statische IP-Konfiguration
 IPAddress local_IP(192, 168, 2, 236);   // Feste IP-Adresse des ESP32
