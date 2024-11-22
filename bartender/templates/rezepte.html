@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezepte verwalten</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+        }
+        main {
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        nav {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        nav button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        nav button:hover {
+            background-color: #0056b3;
+        }
+        .recipe-list, .generate-recipe, .command-list, .add-recipe {
+            margin-bottom: 30px;
+        }
+        .recipe-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .recipe-item span {
+            font-weight: bold;
+        }
+        .recipe-buttons button {
+            margin-left: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .recipe-buttons button:hover {
+            opacity: 0.9;
+        }
+        .recipe-buttons button.delete {
+            background-color: #dc3545;
+        }
+        .recipe-buttons button.delete:hover {
+            background-color: #c82333;
+        }
+        .edit-recipe, .add-recipe, .generate-recipe {
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .edit-recipe h2, .add-recipe h2, .generate-recipe h2 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .edit-recipe label, .add-recipe label, .generate-recipe label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .edit-recipe textarea, .add-recipe input, .add-recipe textarea,
+        .generate-recipe input, .generate-recipe select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .edit-recipe button, .add-recipe button, .generate-recipe button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px; /* Abstand zwischen Buttons */
+        }
+        .edit-recipe button:hover, .add-recipe button:hover, .generate-recipe button:hover {
+            background-color: #218838;
+        }
+        .drink-row {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Abstand zwischen Dropdown und Eingabefeld */
+            margin-bottom: 15px;
+        }
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+<script>
+    function hideEditRecipeForm() {
+        document.querySelector(".edit-recipe").style.display = "none";
+    }
+
+    function editRecipe(recipeName, recipeContent) {
+        const nameElement = document.getElementById("edit-recipe-name");
+        const contentElement = document.getElementById("edit-recipe-content");
+
+        if (!nameElement || !contentElement) {
+            console.error("Edit form elements not found");
+            return;
+        }
+
+        nameElement.textContent = recipeName;
+        contentElement.value = recipeContent.trim();
+        document.querySelector(".edit-recipe").style.display = "block";
+    }
+
+    async function saveEditedRecipe() {
+        const name = document.getElementById("edit-recipe-name").textContent.trim();
+        const content = document.getElementById("edit-recipe-content").value.trim();
+
+        if (!content) {
+            alert("Das Rezept darf nicht leer sein.");
+            return;
+        }
+
+        const response = await fetch("/rezepte", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name, content })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        if (result.status === "success") {
+            hideEditRecipeForm();
+            location.reload();
+        }
+    }
+
+    async function deleteRecipe(recipeName) {
+        const confirmDelete = confirm(`Möchten Sie das Rezept '${recipeName}' wirklich löschen?`);
+        if (!confirmDelete) return;
+
+        const response = await fetch("/rezepte", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name: recipeName })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        if (result.status === "success") {
+            location.reload();
+        }
+    }
+
+    async function saveNewRecipe() {
+        const name = document.getElementById("new-recipe-name").value.trim();
+        const content = document.getElementById("new-recipe-content").value.trim();
+
+        if (!name || !content) {
+            alert("Bitte geben Sie einen Namen und Inhalt für das Rezept an.");
+            return;
+        }
+
+        const response = await fetch("/rezepte", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name, content })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        if (result.status === "success") {
+            location.reload();
+        }
+    }
+
+    function addDrinkRow() {
+        const container = document.getElementById("drink-container");
+        const row = document.createElement("div");
+        row.className = "drink-row";
+        row.innerHTML = `
+            <select class="generate-recipe-drink">
+                {% for alcohol in configured_alcohols %}
+                {% if alcohol != "pour_time" %}
+                <option value="{{ alcohol }}">{{ alcohol }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            <input type="number" class="generate-recipe-amount" step="0.1" placeholder="Menge in cl">
+        `;
+        container.appendChild(row);
+    }
+
+    async function generateRecipe() {
+        const name = document.getElementById("generate-recipe-name").value.trim();
+        const drinkRows = document.querySelectorAll(".drink-row");
+        const alcoholData = [];
+
+        drinkRows.forEach((row) => {
+            const alcohol = row.querySelector(".generate-recipe-drink").value;
+            const amount = parseFloat(row.querySelector(".generate-recipe-amount").value);
+            if (alcohol && amount > 0) {
+                alcoholData.push({ alcohol, amount });
+            }
+        });
+
+        if (!name || alcoholData.length === 0) {
+            alert("Bitte geben Sie einen Rezeptnamen und mindestens eine gültige Zutat mit Menge ein.");
+            return;
+        }
+
+        const response = await fetch("/generate_recipe", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name, alcoholData })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        if (result.status === "success") {
+            location.reload();
+        }
+    }
+</script>
+
+</head>
+<body>
+    <header>
+        <h1>Rezepte verwalten</h1>
+    </header>
+    <main>
+        <nav>
+            <button onclick="window.location.href='/'">Zurück zur Übersicht</button>
+        </nav>
+
+        <section class="recipe-list">
+            <h2>Bestehende Rezepte</h2>
+            {% for recipe_name, recipe_content in recipes.items() %}
+            <div class="recipe-item">
+                <span>{{ recipe_name }}</span>
+                <div class="recipe-buttons">
+                    <button class="edit" onclick="editRecipe('{{ recipe_name }}', `{{ recipe_content }}`)">Bearbeiten</button>
+                    <button class="delete" onclick="deleteRecipe('{{ recipe_name }}')">Löschen</button>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+
+        <section class="edit-recipe" style="display: none;">
+            <h2>Rezept bearbeiten</h2>
+            <p><strong>Name:</strong> <span id="edit-recipe-name"></span></p>
+            <label for="edit-recipe-content">Inhalt:</label>
+            <textarea id="edit-recipe-content" rows="5"></textarea>
+            <button onclick="saveEditedRecipe()">Änderungen speichern</button>
+            <button onclick="hideEditRecipeForm()">Abbrechen</button>
+        </section>
+
+        <section class="add-recipe">
+            <h2>Neues Rezept hinzufügen</h2>
+            <label for="new-recipe-name">Rezeptname:</label>
+            <input type="text" id="new-recipe-name" placeholder="Rezeptname eingeben">
+
+            <label for="new-recipe-content">Rezeptinhalt:</label>
+            <textarea id="new-recipe-content" rows="5" placeholder="Rezeptinhalt eingeben"></textarea>
+
+            <button onclick="saveNewRecipe()">Rezept hinzufügen</button>
+        </section>
+
+        <section class="generate-recipe">
+            <h2>Rezept automatisch generieren</h2>
+            <label for="generate-recipe-name">Rezeptname:</label>
+            <input type="text" id="generate-recipe-name" placeholder="Rezeptname eingeben">
+
+            <h3>Getränke hinzufügen</h3>
+            <div id="drink-container"></div>
+            <button onclick="addDrinkRow()">Getränk hinzufügen</button>
+            <button onclick="generateRecipe()">Rezept generieren</button>
+        </section>
+
+        <section class="command-list">
+            <h2>Mögliche Befehle und Syntax</h2>
+            <div class="command-item">
+                <span><strong>start</strong></span>
+                <span>Startet ein neues Rezept.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>done</strong></span>
+                <span>Beendet ein laufendes Rezept.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>move [Wert]</strong></span>
+                <span>Bewegt die Plattform zu einer bestimmten Position in mm.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>move [Drink]</strong></span>
+                <span>Bewegt die Plattform zu einem konfigurierten Drink.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>servo cl [Wert]</strong></span>
+                <span>Steuert die Servo-Menge in cl.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>servo ms [Wert]</strong></span>
+                <span>Bewegt den Servo mit einer bestimmten Verzögerung in ms.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>wait [Wert]</strong></span>
+                <span>Wartet für die angegebene Zeit in Millisekunden.</span>
+            </div>
+        </section>
+    </main>
+    <footer>
+        &copy; 2024 Leo Fleischmann
+    </footer>
+</body>
+</html>

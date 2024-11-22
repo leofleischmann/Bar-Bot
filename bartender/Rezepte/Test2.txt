@@ -1,0 +1,17 @@
+start
+move vodka
+wait 500
+servo cl 1.0
+wait 1000
+move gin
+wait 500
+servo cl 2.0
+wait 1000
+move rum
+wait 500
+servo cl 2
+wait 5000
+servo cl 1.0
+wait 1000
+move 10
+done

@@ -1,0 +1,7 @@
+start
+move gin
+servo cl 1
+wait 4000
+servo ms 3000
+wait 2000
+done
