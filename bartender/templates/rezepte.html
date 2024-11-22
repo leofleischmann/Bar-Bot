@@ -43,10 +43,10 @@
         nav button:hover {
             background-color: #0056b3;
         }
-        .recipe-list {
+        .recipe-list, .command-list {
             margin-bottom: 30px;
         }
-        .recipe-item {
+        .recipe-item, .command-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -56,7 +56,7 @@
             padding: 15px;
             margin-bottom: 10px;
         }
-        .recipe-item span {
+        .recipe-item span, .command-item span {
             font-weight: bold;
         }
         .recipe-buttons button {
@@ -83,7 +83,7 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             margin-top: 20px;
-            display: none;
+            display: none; /* Standardmäßig unsichtbar */
         }
         .edit-recipe h2 {
             margin-bottom: 15px;
@@ -162,23 +162,8 @@
         }
     </style>
     <script>
-        async function deleteRecipe(recipeName) {
-            const confirmDelete = confirm(`Möchten Sie das Rezept '${recipeName}' wirklich löschen?`);
-            if (!confirmDelete) return;
-
-            const response = await fetch("/rezepte", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ name: recipeName })
-            });
-
-            const result = await response.json();
-            alert(result.message);
-            if (result.status === "success") {
-                location.reload();
-            }
+        function hideEditRecipeForm() {
+            document.querySelector(".edit-recipe").style.display = "none";
         }
 
         function editRecipe(recipeName, recipeContent) {
@@ -202,6 +187,26 @@
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ name, content })
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            if (result.status === "success") {
+                hideEditRecipeForm(); // Formular ausblenden
+                location.reload();
+            }
+        }
+
+        async function deleteRecipe(recipeName) {
+            const confirmDelete = confirm(`Möchten Sie das Rezept '${recipeName}' wirklich löschen?`);
+            if (!confirmDelete) return;
+
+            const response = await fetch("/rezepte", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ name: recipeName })
             });
 
             const result = await response.json();
@@ -264,6 +269,7 @@
             <label for="edit-recipe-content">Inhalt:</label>
             <textarea id="edit-recipe-content" rows="5"></textarea>
             <button onclick="saveEditedRecipe()">Änderungen speichern</button>
+            <button onclick="hideEditRecipeForm()">Abbrechen</button>
         </section>
 
         <section class="add-recipe">
@@ -276,9 +282,37 @@
 
             <button onclick="saveNewRecipe()">Rezept hinzufügen</button>
         </section>
+
+        <section class="command-list">
+            <h2>Mögliche Befehle und Syntax</h2>
+            <div class="command-item">
+                <span><strong>start</strong></span>
+                <span>Startet ein neues Rezept.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>done</strong></span>
+                <span>Beendet ein laufendes Rezept.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>move [Wert]</strong></span>
+                <span>Bewegt die Plattform zu einer bestimmten Position in mm.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>move [Drink]</strong></span>
+                <span>Bewegt die Plattform zu einem konfigurierten Drink.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>servo [Wert]</strong></span>
+                <span>Bewegt den Servo mit einer bestimmten Verzögerung in ms.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>wait [Wert]</strong></span>
+                <span>Wartet für die angegebene Zeit in Millisekunden.</span>
+            </div>
+        </section>
     </main>
     <footer>
-        &copy; Leo Fleischmann
+        &copy; 2024 BarTender System
     </footer>
 </body>
 </html>
