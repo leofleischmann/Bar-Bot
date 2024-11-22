@@ -21,8 +21,11 @@ This is my take on the Automatic Bartender Robot (original: https://github.com/s
 - Software for the Raspberry Pi and ESP32
 - Hardware testing
 - Parameter tuning
+- User Interface
+- Fully functional Web interface to configure, edit, add, remove recipes and drinks with ther corresponding position
+- (Done at 22th November 2024)
 
 # Currently working on:
-- User Interface
+- Waiting to buy liquor dispensers
 
-# Total Hardware cost (not including 3D printing material): ~160€
+# Total Hardware cost (not including 3D printing material): ~165€
