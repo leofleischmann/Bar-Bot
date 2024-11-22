@@ -13,12 +13,11 @@ This is my take on the Automatic Bartender Robot (original: https://github.com/s
 - Adding new recipes is also very easy. Just select the drink and the quantity, and a file with the instructions for the esp is automatically created.
 - When Bottles are reordered, it still works perfectly, as long as you define the new locations on the /config page
 
-# Things I want to change:
-- Not use a 100€ Servo Motor,
-- ESP32 only receives commands from a Raspberry Pi and executes them,
-- All drinks are stored on the Raspberry Pi as command lists (pour <ml>, move to <mm>, calibrate,...),
-- Drinks can be selected, added, removed, configured via a webserver. (Thus no App needed on a phone and user interface is not suffering from running a Webserver via the ESP)
-
+# Technical Details
+The ESP has minimal code on it. It only takes 2 commands.
+- move to position x and
+- activate servo, hold for x ms, then go back
+The Raspberry Pi takes the heavy lifting, by sending the right commands to the ESP
 
 # Already done:
 - All parts are assembled (except liquor holding and pouring construction)
