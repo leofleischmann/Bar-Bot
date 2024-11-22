@@ -118,10 +118,17 @@
 
             // Save other configurations
             items.forEach(item => {
-                const name = item.querySelector(".config-name").value.trim();
-                const position = parseInt(item.querySelector(".config-position").value.trim());
-                if (name && !isNaN(position)) {
-                    config[name] = position;
+                const nameInput = item.querySelector(".config-name");
+                const positionInput = item.querySelector(".config-position");
+
+                // Check if both inputs exist
+                if (nameInput && positionInput) {
+                    const name = nameInput.value.trim();
+                    const position = parseInt(positionInput.value.trim());
+
+                    if (name && !isNaN(position)) {
+                        config[name] = position;
+                    }
                 }
             });
 
