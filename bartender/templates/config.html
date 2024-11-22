@@ -43,6 +43,9 @@
         nav button:hover {
             background-color: #0056b3;
         }
+        .config-section {
+            margin-bottom: 30px;
+        }
         .config-item {
             display: flex;
             justify-content: space-between;
@@ -60,21 +63,14 @@
             border-radius: 5px;
         }
         .config-buttons button {
-            background-color: #28a745;
+            background-color: #dc3545;
             color: white;
             border: none;
             border-radius: 5px;
             padding: 5px 10px;
-            margin-left: 10px;
             cursor: pointer;
         }
         .config-buttons button:hover {
-            background-color: #218838;
-        }
-        .config-buttons button.delete {
-            background-color: #dc3545;
-        }
-        .config-buttons button.delete:hover {
             background-color: #c82333;
         }
         .add-config {
@@ -86,19 +82,6 @@
         }
         .add-config h2 {
             margin-bottom: 15px;
-        }
-        .add-config label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .add-config input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
         }
         .add-config button {
             background-color: #007bff;
@@ -121,9 +104,19 @@
     </style>
     <script>
         async function saveConfig() {
+            const pourTimeInput = document.getElementById("pour-time-value");
             const items = document.querySelectorAll(".config-item");
             const config = {};
 
+            // Save pour_time separately
+            if (pourTimeInput) {
+                const pourTime = parseInt(pourTimeInput.value.trim());
+                if (!isNaN(pourTime)) {
+                    config["pour_time"] = pourTime;
+                }
+            }
+
+            // Save other configurations
             items.forEach(item => {
                 const name = item.querySelector(".config-name").value.trim();
                 const position = parseInt(item.querySelector(".config-position").value.trim());
@@ -176,9 +169,19 @@
             <button onclick="window.location.href='/'">Zurück zur Übersicht</button>
         </nav>
 
+        <!-- Pour Time Section -->
+        <section class="config-section">
+            <h2>Pour Time (für 2cl)</h2>
+            <div class="config-item">
+                <input type="number" id="pour-time-value" value="{{ config.pour_time }}" placeholder="Pour Time (ms)">
+            </div>
+        </section>
+
+        <!-- Drinks Configuration Section -->
         <section class="config-list">
-            <h2>Aktuelle Konfiguration</h2>
+            <h2>Getränkekonfiguration</h2>
             {% for name, position in config.items() %}
+            {% if name != "pour_time" %}
             <div class="config-item">
                 <input type="text" class="config-name" value="{{ name }}" placeholder="Name">
                 <input type="number" class="config-position" value="{{ position }}" placeholder="Position (mm)">
@@ -186,14 +189,17 @@
                     <button class="delete" onclick="removeConfigRow(this)">Entfernen</button>
                 </div>
             </div>
+            {% endif %}
             {% endfor %}
         </section>
 
+        <!-- Add New Configuration -->
         <section class="add-config">
             <h2>Neuen Eintrag hinzufügen</h2>
             <button onclick="addConfigRow()">Eintrag hinzufügen</button>
         </section>
 
+        <!-- Save Button -->
         <div style="text-align: center; margin-top: 20px;">
             <button onclick="saveConfig()" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Speichern</button>
         </div>
