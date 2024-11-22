@@ -1,5 +1,0 @@
-start
-move gin
-move 100
-servo 1000
-done
