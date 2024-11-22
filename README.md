@@ -29,3 +29,6 @@ This is my take on the Automatic Bartender Robot (original: https://github.com/s
 - Waiting to buy liquor dispensers
 
 # Total Hardware cost (not including 3D printing material): ~165€
+
+![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/aef47b5e8c036a115e24fcea56c180e6691d0192/Progress_report.jpeg?raw=true)
+![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/aef47b5e8c036a115e24fcea56c180e6691d0192/AutoBarTender_constructed_v1_2024-Nov-18_06-47-27PM-000.png?raw=true)
