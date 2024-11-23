@@ -39,10 +39,9 @@ const int raspi_port = 5001;           // Port des Flask-Servers
 WebServer server(80);
 
 // Bewegungseinstellungen
-const int moveMaxSpeed = 1500;        // Schritte pro Sekunde
-const int moveAcceleration = 800;    // Schritte pro Sekunde^2
-const int calibMaxSpeed = 1500;      // Geschwindigkeit während der Kalibrierung
-const int calibAcceleration = 800;   // Beschleunigung während der Kalibrierung
+const int moveMaxSpeed = 6000;        // Schritte pro Sekunde
+const int moveAcceleration = 1200;    // Schritte pro Sekunde^2
+const int calibMaxSpeed = 2600;      // Geschwindigkeit während der Kalibrierung
 const int maxMillimeters = 1200;     // Maximale Strecke in Millimetern (Zwischen Endschaltern)
 
 // Zustandsvariablen
@@ -163,9 +162,7 @@ void calibratePlatform() {
   Serial.println("Kalibrierung: Bewege zu Endschalter 1...");
   enableDriver();
 
-  stepper.setMaxSpeed(calibMaxSpeed);
-  stepper.setAcceleration(calibAcceleration);
-  stepper.setSpeed(-500);
+  stepper.setSpeed(-calibMaxSpeed);  // Nutzt die in calibMaxSpeed definierte Geschwindigkeit
   while (digitalRead(LIMIT_SWITCH1_PIN) == LOW) {
     stepper.runSpeed();
   }
@@ -174,7 +171,7 @@ void calibratePlatform() {
   Serial.println("Kalibrierung: Endschalter 1 erreicht. Position auf 0 gesetzt.");
 
   Serial.println("Kalibrierung: Bewege zu Endschalter 2...");
-  stepper.setSpeed(500);
+  stepper.setSpeed(calibMaxSpeed);
   while (digitalRead(LIMIT_SWITCH2_PIN) == LOW) {
     stepper.runSpeed();
   }
