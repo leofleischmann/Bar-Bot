@@ -255,20 +255,49 @@
         form.style.display = form.style.display === "block" ? "none" : "block";
     }
 
-    function showDrinkDetails(drinkName, ingredients) {
+    function analyzeRecipe(recipeName, recipeContent) {
         const modal = document.getElementById("drink-details-modal");
         const overlay = document.getElementById("modal-overlay");
+        const detailsList = document.getElementById("recipe-details-list");
 
-        modal.querySelector("h3").textContent = `Zutaten für ${drinkName}`;
-        const ingredientList = modal.querySelector("ul");
-        ingredientList.innerHTML = "";
+        console.log("Analyzing recipe content:", recipeContent); // Debugging
 
-        ingredients.forEach(ingredient => {
-            const li = document.createElement("li");
-            li.textContent = `${ingredient.name}: ${ingredient.amount} ml`;
-            ingredientList.appendChild(li);
+        // Parse recipe content
+        const lines = recipeContent.split("\n");
+        const ingredientAmounts = {};
+        let currentIngredient = null;
+
+        lines.forEach(line => {
+            line = line.trim();
+            console.log("Processing line:", line); // Debugging
+            if (line.startsWith("move")) {
+                currentIngredient = line.split(" ")[1];
+                console.log("Current ingredient set to:", currentIngredient); // Debugging
+            } else if (line.startsWith("servo cl") && currentIngredient) {
+                const amount = parseFloat(line.split(" ")[2]);
+                if (!ingredientAmounts[currentIngredient]) {
+                    ingredientAmounts[currentIngredient] = 0;
+                }
+                ingredientAmounts[currentIngredient] += amount;
+                console.log(`Added ${amount} cl to ${currentIngredient}`); // Debugging
+            }
         });
 
+        // Check if there are ingredients
+        if (Object.keys(ingredientAmounts).length === 0) {
+            detailsList.innerHTML = "<li>Zutaten nicht verfügbar</li>";
+        } else {
+            // Update modal content
+            detailsList.innerHTML = "";
+            for (const [ingredient, amount] of Object.entries(ingredientAmounts)) {
+                const li = document.createElement("li");
+                li.textContent = `${ingredient}: ${amount.toFixed(1)} cl`;
+                detailsList.appendChild(li);
+            }
+        }
+
+        // Show modal
+        modal.querySelector("h3").textContent = `Rezept für ${recipeName}`;
         modal.style.display = "block";
         overlay.style.display = "block";
     }
@@ -297,13 +326,7 @@
         <div class="grid-container">
             {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
             <div class="grid-item valid">
-                <div class="info-icon"
-                     {% if recipe.contents is not none and recipe.contents|length > 0 %}
-                     onclick="showDrinkDetails('{{ recipe.name.replace('.txt', '') }}', {{ recipe.contents|tojson|safe }})"
-                     {% else %}
-                     title="Zutaten nicht verfügbar"
-                     {% endif %}
-                >?</div>
+                <div class="info-icon" onclick="analyzeRecipe('{{ recipe.name.replace('.txt', '') }}', `{{ recipe.content|e }}`)">?</div>
                 <div class="letter">{{ recipe.name[0] }}</div>
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
@@ -315,13 +338,7 @@
         <div class="grid-container">
             {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
             <div class="grid-item invalid">
-                <div class="info-icon"
-                     {% if recipe.contents is not none and recipe.contents|length > 0 %}
-                     onclick="showDrinkDetails('{{ recipe.name.replace('.txt', '') }}', {{ recipe.contents|tojson|safe }})"
-                     {% else %}
-                     title="Zutaten nicht verfügbar"
-                     {% endif %}
-                >?</div>
+                <div class="info-icon" onclick="analyzeRecipe('{{ recipe.name.replace('.txt', '') }}', `{{ recipe.content|e }}`)">?</div>
                 <div class="letter">{{ recipe.name[0] }}</div>
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">Details anzeigen</button>
@@ -334,10 +351,11 @@
             {% endfor %}
         </div>
 
+        <!-- Modal for Recipe Details -->
         <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
         <div id="drink-details-modal" class="modal">
-            <h3>Zutaten</h3>
-            <ul></ul>
+            <h3>Rezept Zutaten</h3>
+            <ul id="recipe-details-list"></ul>
             <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
         </div>
 
@@ -379,9 +397,8 @@
         </form>
     </main>
     <footer>
-        &copy; 2024 Leo Fleischmann
+        &copy; 2024 BarTender System
     </footer>
 </body>
-
 
 </html>
