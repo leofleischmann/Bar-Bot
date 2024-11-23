@@ -35,7 +35,7 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 # Currently working on:
 - Waiting to buy liquor dispensers
 
-# Total Hardware cost (not including 3D printing material): ~165€
+# Total Hardware cost (not including 3D printing material): ~315€
 
 # Here are a few images
 ![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/aef47b5e8c036a115e24fcea56c180e6691d0192/Progress_report.jpeg?raw=true)
