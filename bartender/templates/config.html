@@ -15,11 +15,12 @@
         header {
             background-color: #007bff;
             color: white;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
         }
         header h1 {
             margin: 0;
+            font-size: 24px;
         }
         main {
             padding: 20px;
@@ -38,7 +39,6 @@
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
-            margin: 5px;
         }
         nav button:hover {
             background-color: #0056b3;
@@ -46,42 +46,81 @@
         .config-section {
             margin-bottom: 30px;
         }
-        .config-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: white;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 15px;
+        .config-section h2 {
+            font-size: 20px;
+            color: #333;
             margin-bottom: 10px;
         }
-        .config-item input {
-            width: 70%;
-            padding: 10px;
+        .pour-time-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .pour-time-container input {
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            text-align: right;
         }
-        .config-buttons button {
+        .config-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .config-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: white;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .config-name {
+            width: 45%;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .config-position {
+            width: 20%;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: right;
+        }
+        .config-drag {
+            cursor: grab;
+            color: #666;
+            font-size: 18px;
+        }
+        .config-drag:active {
+            cursor: grabbing;
+        }
+        .config-item button {
             background-color: #dc3545;
             color: white;
             border: none;
             border-radius: 5px;
             padding: 5px 10px;
+            font-size: 14px;
             cursor: pointer;
         }
-        .config-buttons button:hover {
+        .config-item button:hover {
             background-color: #c82333;
         }
         .add-config {
-            background-color: white;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            text-align: center;
             margin-top: 20px;
-        }
-        .add-config h2 {
-            margin-bottom: 15px;
         }
         .add-config button {
             background-color: #007bff;
@@ -95,6 +134,22 @@
         .add-config button:hover {
             background-color: #0056b3;
         }
+        .save-button {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .save-button button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .save-button button:hover {
+            background-color: #218838;
+        }
         footer {
             margin-top: 20px;
             text-align: center;
@@ -104,39 +159,30 @@
     </style>
     <script>
         async function saveConfig() {
-            const pourTimeInput = document.getElementById("pour-time-value");
+            const pourTimeInput = document.getElementById("pour-time-value").value.trim();
             const items = document.querySelectorAll(".config-item");
-            const config = {};
+            const config = { pour_time: parseInt(pourTimeInput) || 0 };
 
-            // Save pour_time separately
-            if (pourTimeInput) {
-                const pourTime = parseInt(pourTimeInput.value.trim());
-                if (!isNaN(pourTime)) {
-                    config["pour_time"] = pourTime;
-                }
-            }
-
-            // Save other configurations
             items.forEach(item => {
                 const nameInput = item.querySelector(".config-name");
-                const positionInput = item.querySelector(".config-position");
+                const name = nameInput.value.trim();
+                const position = parseInt(item.querySelector(".config-position").value.trim());
 
-                // Check if both inputs exist
-                if (nameInput && positionInput) {
-                    const name = nameInput.value.trim();
-                    const position = parseInt(positionInput.value.trim());
+                // Validierung des Namens
+                if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+                    alert(`Ungültiger Name: "${name}". Nur Buchstaben, Zahlen und Unterstriche sind erlaubt.`);
+                    nameInput.focus();
+                    throw new Error("Ungültige Eingabe");
+                }
 
-                    if (name && !isNaN(position)) {
-                        config[name] = position;
-                    }
+                if (name && !isNaN(position)) {
+                    config[name] = position;
                 }
             });
 
             const response = await fetch("/config", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ config })
             });
 
@@ -149,22 +195,65 @@
 
         function addConfigRow() {
             const container = document.querySelector(".config-list");
-            const row = document.createElement("div");
-            row.className = "config-item";
-            row.innerHTML = `
-                <input type="text" class="config-name" placeholder="Name">
-                <input type="number" class="config-position" placeholder="Position (mm)">
-                <div class="config-buttons">
-                    <button class="delete" onclick="removeConfigRow(this)">Entfernen</button>
-                </div>
+            const newItem = document.createElement("div");
+            newItem.className = "config-item";
+            newItem.innerHTML = `
+                <input type="text" class="config-name" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
+                <input type="number" class="config-position" placeholder="Position in mm">
+                <span class="config-drag" draggable="true">☰</span>
+                <button onclick="removeConfigRow(this)">Entfernen</button>
             `;
-            container.appendChild(row);
+            container.appendChild(newItem);
+            enableDragAndDrop();
         }
 
         function removeConfigRow(button) {
-            const row = button.parentNode.parentNode;
-            row.remove();
+            const item = button.closest(".config-item");
+            item.remove();
         }
+
+        function enableDragAndDrop() {
+            const items = document.querySelectorAll(".config-item");
+            const list = document.querySelector(".config-list");
+
+            items.forEach(item => {
+                const dragHandle = item.querySelector(".config-drag");
+                dragHandle.addEventListener("dragstart", () => {
+                    item.classList.add("dragging");
+                });
+
+                dragHandle.addEventListener("dragend", () => {
+                    item.classList.remove("dragging");
+                });
+            });
+
+            list.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(list, e.clientY);
+                const dragging = document.querySelector(".dragging");
+                if (afterElement == null) {
+                    list.appendChild(dragging);
+                } else {
+                    list.insertBefore(dragging, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll(".config-item:not(.dragging)")];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        document.addEventListener("DOMContentLoaded", enableDragAndDrop);
     </script>
 </head>
 <body>
@@ -179,36 +268,37 @@
         <!-- Pour Time Section -->
         <section class="config-section">
             <h2>Pour Time (für 2cl)</h2>
-            <div class="config-item">
-                <input type="number" id="pour-time-value" value="{{ config.pour_time }}" placeholder="Pour Time (ms)">
+            <div class="pour-time-container">
+                <label for="pour-time-value">Pour Time:</label>
+                <input type="number" id="pour-time-value" value="{{ config.pour_time }}" placeholder="2000">
             </div>
         </section>
 
         <!-- Drinks Configuration Section -->
-        <section class="config-list">
+        <section>
             <h2>Getränkekonfiguration</h2>
-            {% for name, position in config.items() %}
-            {% if name != "pour_time" %}
-            <div class="config-item">
-                <input type="text" class="config-name" value="{{ name }}" placeholder="Name">
-                <input type="number" class="config-position" value="{{ position }}" placeholder="Position (mm)">
-                <div class="config-buttons">
-                    <button class="delete" onclick="removeConfigRow(this)">Entfernen</button>
+            <div class="config-list">
+                {% for name, position in config.items() %}
+                {% if name != "pour_time" %}
+                <div class="config-item">
+                    <input type="text" class="config-name" value="{{ name }}" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
+                    <input type="number" class="config-position" value="{{ position }}" placeholder="Position in mm">
+                    <span class="config-drag" draggable="true">☰</span>
+                    <button onclick="removeConfigRow(this)">Entfernen</button>
                 </div>
+                {% endif %}
+                {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
         </section>
 
         <!-- Add New Configuration -->
-        <section class="add-config">
-            <h2>Neuen Eintrag hinzufügen</h2>
+        <div class="add-config">
             <button onclick="addConfigRow()">Eintrag hinzufügen</button>
-        </section>
+        </div>
 
         <!-- Save Button -->
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="saveConfig()" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">Speichern</button>
+        <div class="save-button">
+            <button onclick="saveConfig()">Speichern</button>
         </div>
     </main>
     <footer>
