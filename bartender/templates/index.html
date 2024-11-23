@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rezepte-Übersicht</title>
+    <title>Drinks Übersicht</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+            background-color: #f9f9f9;
             color: #333;
             margin: 0;
             padding: 0;
@@ -15,11 +15,12 @@
         header {
             background-color: #007bff;
             color: white;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
         }
         header h1 {
             margin: 0;
+            font-size: 28px;
         }
         main {
             padding: 20px;
@@ -43,47 +44,88 @@
         nav button:hover {
             background-color: #0056b3;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
         }
-        li {
-            margin: 10px 0;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .grid-item {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             position: relative;
         }
-        .valid {
+        .grid-item.valid {
             border-left: 5px solid #28a745;
+            background-color: white;
         }
-        .invalid {
+        .grid-item.invalid {
             border-left: 5px solid #dc3545;
+            background-color: white;
+        }
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .grid-item .info-icon {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            color: #007bff;
+            background: #f1f1f1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        .grid-item .letter {
+            font-size: 48px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .grid-item .name {
+            font-size: 18px;
+            margin: 10px 0;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .start-button {
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
-            padding: 5px 10px;
+            padding: 10px 15px;
+            font-size: 14px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         .start-button:hover {
             background-color: #0056b3;
         }
-        .hidden-reasons {
-            display: none;
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
         }
         form {
-            margin-top: 30px;
+            margin-top: 20px;
             padding: 20px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 10px;
             background-color: white;
+            max-width: 500px;
+            margin: 20px auto;
+            display: none;
         }
         form label {
             font-weight: bold;
@@ -109,49 +151,89 @@
         form button:hover {
             background-color: #218838;
         }
-        footer {
-            margin-top: 20px;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 300px;
             text-align: center;
-            font-size: 14px;
-            color: #666;
+        }
+        .modal h3 {
+            margin-bottom: 15px;
+        }
+        .modal ul {
+            list-style: none;
+            padding: 0;
+        }
+        .modal ul li {
+            margin-bottom: 8px;
+        }
+        .modal .close-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .modal .close-button:hover {
+            background-color: #c82333;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
         }
     </style>
-    <script>
-        async function startRecipe(recipeName) {
-            const response = await fetch("/run_recipe", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ recipe: recipeName })
-            });
-            const result = await response.json();
-            alert(result.message);
+<script>
+    async function startRecipe(recipeName) {
+        const response = await fetch("/run_recipe", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ recipe: recipeName })
+        });
+        const result = await response.json();
+        alert(result.message);
+    }
+
+    function showInvalidReasons(recipeId) {
+        const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
+        if (!reasonsDiv) {
+            alert("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.");
+            return;
+        }
+        const reasons = reasonsDiv.textContent.trim();
+        if (reasons) {
+            alert("Fehlende Drinks:\n" + reasons);
+        } else {
+            alert("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.");
+        }
+    }
+
+    async function sendManualCommand() {
+        const commandType = document.getElementById("manualCommandType").value;
+        const value = parseInt(document.getElementById("manualValue").value);
+
+        if (!commandType || isNaN(value)) {
+            alert("Bitte geben Sie einen gültigen Befehl und Wert ein.");
+            return;
         }
 
-        function showInvalidReasons(recipeId) {
-            const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
-            if (!reasonsDiv) {
-                alert("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.");
-                return;
-            }
-            const reasons = reasonsDiv.textContent.trim();
-            if (reasons) {
-                alert("Fehlende Drinks:\n" + reasons);
-            } else {
-                alert("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.");
-            }
-        }
-
-        async function sendManualCommand() {
-            const commandType = document.getElementById("manualCommandType").value;
-            const value = parseInt(document.getElementById("manualValue").value);
-
-            if (!commandType || isNaN(value)) {
-                alert("Bitte geben Sie einen gültigen Befehl und Wert ein.");
-                return;
-            }
-
+        try {
             const response = await fetch("/send_command", {
                 method: "POST",
                 headers: {
@@ -162,12 +244,48 @@
 
             const result = await response.json();
             alert(result.message);
+        } catch (error) {
+            console.error("Fehler beim Senden des Befehls:", error);
+            alert("Es gab ein Problem beim Senden des Befehls.");
         }
-    </script>
+    }
+
+    function toggleManualControl() {
+        const form = document.querySelector("form");
+        form.style.display = form.style.display === "block" ? "none" : "block";
+    }
+
+    function showDrinkDetails(drinkName, ingredients) {
+        const modal = document.getElementById("drink-details-modal");
+        const overlay = document.getElementById("modal-overlay");
+
+        modal.querySelector("h3").textContent = `Zutaten für ${drinkName}`;
+        const ingredientList = modal.querySelector("ul");
+        ingredientList.innerHTML = "";
+
+        ingredients.forEach(ingredient => {
+            const li = document.createElement("li");
+            li.textContent = `${ingredient.name}: ${ingredient.amount} ml`;
+            ingredientList.appendChild(li);
+        });
+
+        modal.style.display = "block";
+        overlay.style.display = "block";
+    }
+
+    function closeDrinkDetails() {
+        const modal = document.getElementById("drink-details-modal");
+        const overlay = document.getElementById("modal-overlay");
+
+        modal.style.display = "none";
+        overlay.style.display = "none";
+    }
+</script>
+
 </head>
 <body>
     <header>
-        <h1>Rezepte-Übersicht</h1>
+        <h1>Drinks Übersicht</h1>
     </header>
     <main>
         <nav>
@@ -175,42 +293,96 @@
             <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
         </nav>
 
-        <h2>Rezepte-Übersicht</h2>
-        <p>Die Rezepte in Grün sind vollständig und ausführbar. Die Rezepte in Rot enthalten ungültige Befehle oder fehlende Einträge in der Konfiguration.</p>
-        <ul>
-            {% for recipe in recipes %}
-            <li class="{{ 'valid' if recipe.valid else 'invalid' }}">
-                <span>{{ recipe.name }}</span>
-                {% if recipe.valid %}
+        <h2>Verfügbare Drinks</h2>
+        <div class="grid-container">
+            {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
+            <div class="grid-item valid">
+                <div class="info-icon"
+                     {% if recipe.ingredients is defined %}
+                     onclick="showDrinkDetails('{{ recipe.name }}', {{ recipe.ingredients|tojson|safe }})"
+                     {% else %}
+                     title="Zutaten nicht verfügbar"
+                     {% endif %}
+                >?</div>
+                <div class="letter">{{ recipe.name[0] }}</div>
+                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
-                {% else %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <h2>Nicht verfügbare Drinks</h2>
+        <div class="grid-container">
+            {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
+            <div class="grid-item invalid">
+                <div class="info-icon"
+                     {% if recipe.ingredients is defined %}
+                     onclick="showDrinkDetails('{{ recipe.name }}', {{ recipe.ingredients|tojson|safe }})"
+                     {% else %}
+                     title="Zutaten nicht verfügbar"
+                     {% endif %}
+                >?</div>
+                <div class="letter">{{ recipe.name[0] }}</div>
+                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">Details anzeigen</button>
-                <div class="hidden-reasons" id="reasons-{{ loop.index }}">
+                <div id="reasons-{{ loop.index }}" style="display:none;">
                     {% for reason in recipe.reasons %}
                         {{ reason }}
                     {% endfor %}
                 </div>
-                {% endif %}
-            </li>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
 
-        <h2>Manuelle Steuerung</h2>
-        <form onsubmit="event.preventDefault(); sendManualCommand();">
+        <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
+        <div id="drink-details-modal" class="modal">
+            <h3>Zutaten</h3>
+            <ul></ul>
+            <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
+        </div>
+
+        <!-- Modern Toggle Button for Manual Control -->
+        <div class="toggle-manual" style="text-align: center; margin-top: 20px;">
+            <button onclick="toggleManualControl()" style="
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 50px;
+                padding: 10px 30px;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;">
+                Manuelle Steuerung anzeigen/ausblenden
+            </button>
+        </div>
+
+        <form onsubmit="event.preventDefault(); sendManualCommand();" style="margin-top: 20px; display: none;">
             <label for="manualCommandType">Befehlstyp:</label>
             <select id="manualCommandType" name="manualCommandType" required>
                 <option value="move">Plattform bewegen (mm)</option>
                 <option value="servo">Servo bewegen (ms)</option>
             </select>
-
             <label for="manualValue">Wert:</label>
             <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
-
-            <button type="submit">Befehl senden</button>
+            <button type="submit" style="
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 50px;
+                padding: 10px 30px;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;">
+                Befehl senden
+            </button>
         </form>
     </main>
     <footer>
-        &copy; 2024 Leo Fleischmann
+        &copy; 2024 BarTender System
     </footer>
 </body>
+
+
 </html>
