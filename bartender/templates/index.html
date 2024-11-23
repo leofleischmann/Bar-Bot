@@ -298,8 +298,8 @@
             {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
             <div class="grid-item valid">
                 <div class="info-icon"
-                     {% if recipe.ingredients is defined %}
-                     onclick="showDrinkDetails('{{ recipe.name }}', {{ recipe.ingredients|tojson|safe }})"
+                     {% if recipe.contents is not none and recipe.contents|length > 0 %}
+                     onclick="showDrinkDetails('{{ recipe.name.replace('.txt', '') }}', {{ recipe.contents|tojson|safe }})"
                      {% else %}
                      title="Zutaten nicht verfügbar"
                      {% endif %}
@@ -316,8 +316,8 @@
             {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
             <div class="grid-item invalid">
                 <div class="info-icon"
-                     {% if recipe.ingredients is defined %}
-                     onclick="showDrinkDetails('{{ recipe.name }}', {{ recipe.ingredients|tojson|safe }})"
+                     {% if recipe.contents is not none and recipe.contents|length > 0 %}
+                     onclick="showDrinkDetails('{{ recipe.name.replace('.txt', '') }}', {{ recipe.contents|tojson|safe }})"
                      {% else %}
                      title="Zutaten nicht verfügbar"
                      {% endif %}
@@ -341,7 +341,6 @@
             <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
         </div>
 
-        <!-- Modern Toggle Button for Manual Control -->
         <div class="toggle-manual" style="text-align: center; margin-top: 20px;">
             <button onclick="toggleManualControl()" style="
                 background-color: #007bff;
