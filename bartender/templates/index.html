@@ -262,31 +262,76 @@ header h1 {
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
         }
+        /* Snackbar-Container */
+    .snackbar {
+        visibility: hidden; /* Standardmäßig unsichtbar */
+        min-width: 300px;
+        max-width: 90%; /* Für kleine Bildschirme anpassbar */
+        background-color: #333; /* Standardfarbe */
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 16px 20px;
+        position: fixed;
+        z-index: 1000;
+        left: 50%; /* Horizontal zentriert */
+        bottom: 30px; /* Unten im Viewport */
+        transform: translateX(-50%);
+        font-size: 16px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        opacity: 0; /* Unsichtbar */
+        transition: opacity 0.3s ease, bottom 0.3s ease;
+    }
+
+    /* Snackbar sichtbar */
+    .snackbar.show {
+        visibility: visible;
+        opacity: 1; /* Voll sichtbar */
+        bottom: 50px; /* Nach oben animieren */
+    }
+
+    /* Snackbar für Fehler */
+    .snackbar.error {
+        background-color: #f44336; /* Rot für Fehler */
+    }
+
+    /* Snackbar für Erfolg */
+    .snackbar.success {
+        background-color: #4caf50; /* Grün für Erfolg */
+    }
     </style>
 <script>
-    async function startRecipe(recipeName) {
-        const response = await fetch("/run_recipe", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ recipe: recipeName })
-        });
-        const result = await response.json();
-        alert(result.message);
+     async function startRecipe(recipeName) {
+        try {
+            const response = await fetch("/run_recipe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipe: recipeName }),
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`, "success");
+            } else {
+                throw new Error(result.message || "Fehler beim Starten des Rezepts");
+            }
+        } catch (error) {
+            showSnackbar(error.message, "error");
+        }
     }
 
     function showInvalidReasons(recipeId) {
         const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
         if (!reasonsDiv) {
-            alert("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.");
+            showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
             return;
         }
+
         const reasons = reasonsDiv.textContent.trim();
         if (reasons) {
-            alert("Fehlende Drinks:\n" + reasons);
+            showSnackbar("Fehlende Drinks:\n" + reasons, "error");
         } else {
-            alert("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.");
+            showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
         }
     }
 
@@ -295,7 +340,7 @@ header h1 {
         const value = parseInt(document.getElementById("manualValue").value);
 
         if (!commandType || isNaN(value)) {
-            alert("Bitte geben Sie einen gültigen Befehl und Wert ein.");
+            showSnackbar("Bitte geben Sie einen gültigen Befehl und Wert ein.", "error");
             return;
         }
 
@@ -309,10 +354,10 @@ header h1 {
             });
 
             const result = await response.json();
-            alert(result.message);
+            showSnackbar(result.message, "success");
         } catch (error) {
             console.error("Fehler beim Senden des Befehls:", error);
-            alert("Es gab ein Problem beim Senden des Befehls.");
+            showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
         }
     }
 
@@ -336,14 +381,14 @@ async function fetchRecipeContent(recipeName) {
         console.log(`Geladener Rezeptinhalt (${recipeName}):`, recipeContent);
 
         if (!recipeContent.trim()) {
-            alert(`Das Rezept '${recipeName}' ist leer.`);
+            showSnackbar(`Das Rezept '${recipeName}' ist leer.`, "error");
             return;
         }
 
         analyzeRecipe(recipeName, recipeContent);
     } catch (error) {
         console.error(`Fehler beim Abrufen des Rezepts:`, error);
-        alert(`Das Rezept '${recipeName}' konnte nicht geladen werden.`);
+        showSnackbar(`Das Rezept '${recipeName}' konnte nicht geladen werden.`, "error");
     }
 }
 
@@ -358,7 +403,7 @@ function analyzeRecipe(recipeName, recipeContent) {
 
     // Überprüfen, ob Rezeptinhalt vorhanden ist
     if (!recipeContent || recipeContent.trim() === "") {
-        alert(`Das Rezept '${recipeName}' enthält keine Inhalte.`);
+        showSnackbar(`Das Rezept '${recipeName}' enthält keine Inhalte.`, "error");
         return;
     }
 
@@ -433,6 +478,19 @@ function updateESPStatus() {
                 </span>`;
         });
 }
+
+    function showSnackbar(message, type = "success") {
+        const snackbar = document.getElementById("snackbar");
+        snackbar.textContent = message; // Setzt den Text der Snackbar
+        snackbar.className = "snackbar"; // Standardstil
+        snackbar.classList.add(type); // Fügt Erfolg- oder Fehlerstil hinzu
+        snackbar.classList.add("show"); // Snackbar anzeigen
+
+        // Nach 3 Sekunden ausblenden
+        setTimeout(() => {
+            snackbar.classList.remove("show");
+        }, 3000);
+    }
 
 // Initiale Statusabfrage
 updateESPStatus();
@@ -557,6 +615,8 @@ setInterval(updateESPStatus, 5000);
     <footer>
         &copy; 2024 Leo Fleischmann
     </footer>
+
+    <div id="snackbar" class="snackbar"></div>
 </body>
 
 </html>
