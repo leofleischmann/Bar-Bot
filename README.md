@@ -43,5 +43,5 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 
 # About the Website:
 ![index.html](https://github.com/leofleischmann/Bar-Bot/blob/3d107a8f69a7a1337c4d5f3ebdf53a4c28e42e59/Images/index_V2.png?raw=true)
-![config.html](https://github.com/leofleischmann/Bar-Bot/blob/ae1de67198a41afd0f7748fb647b31d3b8999d1d/Images/config.png?raw=true)
+![config.html](https://github.com/leofleischmann/Bar-Bot/blob/17757d321988ad494f03b8d748e4021ac19225e4/Images/config.png?raw=true)
 ![rezepte.html](https://github.com/leofleischmann/Bar-Bot/blob/3d107a8f69a7a1337c4d5f3ebdf53a4c28e42e59/Images/rezepte.png?raw=true)
