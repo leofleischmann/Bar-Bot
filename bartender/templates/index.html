@@ -12,16 +12,76 @@
             margin: 0;
             padding: 0;
         }
-        header {
-            background-color: #007bff;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
+       header {
+    background-color: #007bff;
+    color: white;
+    padding: 20px;
+}
+
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+header h1 {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px;
+    margin: 0;
+    text-align: center;
+    width: 100%; /* Für Mobilgeräte */
+}
+
+#esp-status {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status .indicator {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status.connected .indicator {
+    background-color: green;
+}
+
+.status.disconnected .indicator {
+    background-color: red;
+}
+
+@media (max-width: 600px) {
+    .header-container {
+        flex-direction: column;
+    }
+
+    header h1 {
+        position: static;
+        transform: none;
+    }
+
+    #esp-status {
+        justify-content: center;
+        margin-top: 10px;
+    }
+}
+
         main {
             padding: 20px;
             max-width: 900px;
@@ -345,9 +405,26 @@ function closeDrinkDetails() {
 
 </head>
 <body>
-    <header>
+<header>
+    <div class="header-container">
+        <!-- Überschrift -->
         <h1>Drinks Übersicht</h1>
-    </header>
+
+        <!-- ESP-Status -->
+        <div id="esp-status">
+            {% if esp_connected %}
+            <span class="status connected">
+                <span class="indicator"></span> ESP verbunden
+            </span>
+            {% else %}
+            <span class="status disconnected">
+                <span class="indicator"></span> ESP nicht verbunden
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
     <main>
         <nav>
             <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
