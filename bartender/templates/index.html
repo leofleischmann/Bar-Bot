@@ -255,60 +255,92 @@
         form.style.display = form.style.display === "block" ? "none" : "block";
     }
 
-    function analyzeRecipe(recipeName, recipeContent) {
-        const modal = document.getElementById("drink-details-modal");
-        const overlay = document.getElementById("modal-overlay");
-        const detailsList = document.getElementById("recipe-details-list");
 
-        console.log("Analyzing recipe content:", recipeContent); // Debugging
+async function fetchRecipeContent(recipeName) {
+    try {
+        console.log(`Rezeptname für Anfrage: ${recipeName}`); // Debugging des Rezeptnamens
 
-        // Parse recipe content
-        const lines = recipeContent.split("\n");
-        const ingredientAmounts = {};
-        let currentIngredient = null;
-
-        lines.forEach(line => {
-            line = line.trim();
-            console.log("Processing line:", line); // Debugging
-            if (line.startsWith("move")) {
-                currentIngredient = line.split(" ")[1];
-                console.log("Current ingredient set to:", currentIngredient); // Debugging
-            } else if (line.startsWith("servo cl") && currentIngredient) {
-                const amount = parseFloat(line.split(" ")[2]);
-                if (!ingredientAmounts[currentIngredient]) {
-                    ingredientAmounts[currentIngredient] = 0;
-                }
-                ingredientAmounts[currentIngredient] += amount;
-                console.log(`Added ${amount} cl to ${currentIngredient}`); // Debugging
-            }
-        });
-
-        // Check if there are ingredients
-        if (Object.keys(ingredientAmounts).length === 0) {
-            detailsList.innerHTML = "<li>Zutaten nicht verfügbar</li>";
-        } else {
-            // Update modal content
-            detailsList.innerHTML = "";
-            for (const [ingredient, amount] of Object.entries(ingredientAmounts)) {
-                const li = document.createElement("li");
-                li.textContent = `${ingredient}: ${amount.toFixed(1)} cl`;
-                detailsList.appendChild(li);
-            }
+        const response = await fetch(`/get_recipe_content?name=${encodeURIComponent(recipeName)}`);
+        console.log(`Antwortstatus: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`Fehler beim Laden des Rezepts: ${response.statusText}`);
         }
 
-        // Show modal
-        modal.querySelector("h3").textContent = `Rezept für ${recipeName}`;
-        modal.style.display = "block";
-        overlay.style.display = "block";
+        const recipeContent = await response.text();
+        console.log(`Geladener Rezeptinhalt (${recipeName}):`, recipeContent);
+
+        if (!recipeContent.trim()) {
+            alert(`Das Rezept '${recipeName}' ist leer.`);
+            return;
+        }
+
+        analyzeRecipe(recipeName, recipeContent);
+    } catch (error) {
+        console.error(`Fehler beim Abrufen des Rezepts:`, error);
+        alert(`Das Rezept '${recipeName}' konnte nicht geladen werden.`);
+    }
+}
+
+
+
+function analyzeRecipe(recipeName, recipeContent) {
+    const modal = document.getElementById("drink-details-modal");
+    const overlay = document.getElementById("modal-overlay");
+    const detailsList = document.getElementById("recipe-details-list");
+
+    console.log(`Analyziere Rezept '${recipeName}':`, recipeContent);
+
+    // Überprüfen, ob Rezeptinhalt vorhanden ist
+    if (!recipeContent || recipeContent.trim() === "") {
+        alert(`Das Rezept '${recipeName}' enthält keine Inhalte.`);
+        return;
     }
 
-    function closeDrinkDetails() {
-        const modal = document.getElementById("drink-details-modal");
-        const overlay = document.getElementById("modal-overlay");
+    // Rezeptinhalt verarbeiten
+    const lines = recipeContent.split(/\r?\n/); // Unterstützung für Windows und Unix-Zeilenumbrüche
+    const ingredientAmounts = {};
+    let currentIngredient = null;
 
-        modal.style.display = "none";
-        overlay.style.display = "none";
+    lines.forEach(line => {
+        line = line.trim();
+        if (line.startsWith("move")) {
+            currentIngredient = line.split(" ")[1]; // Extrahiere Zutat
+            console.log(`Gefundene Zutat: ${currentIngredient}`);
+        } else if (line.startsWith("servo cl") && currentIngredient) {
+            const amount = parseFloat(line.split(" ")[2]);
+            if (!ingredientAmounts[currentIngredient]) {
+                ingredientAmounts[currentIngredient] = 0;
+            }
+            ingredientAmounts[currentIngredient] += amount; // Summiere Menge
+            console.log(`Zutat '${currentIngredient}': +${amount} cl`);
+        }
+    });
+
+    // Zutaten anzeigen
+    detailsList.innerHTML = "";
+    if (Object.keys(ingredientAmounts).length === 0) {
+        detailsList.innerHTML = "<li>Zutaten nicht verfügbar</li>";
+    } else {
+        for (const [ingredient, amount] of Object.entries(ingredientAmounts)) {
+            const li = document.createElement("li");
+            li.textContent = `${ingredient}: ${amount.toFixed(1)} cl`;
+            detailsList.appendChild(li);
+        }
     }
+
+    // Modal anzeigen
+    modal.querySelector("h3").textContent = `Rezept für ${recipeName}`;
+    modal.style.display = "block";
+    overlay.style.display = "block";
+}
+
+function closeDrinkDetails() {
+    const modal = document.getElementById("drink-details-modal");
+    const overlay = document.getElementById("modal-overlay");
+    modal.style.display = "none";
+    overlay.style.display = "none";
+}
+
 </script>
 
 </head>
@@ -326,9 +358,13 @@
         <div class="grid-container">
             {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
             <div class="grid-item valid">
-                <div class="info-icon" onclick="analyzeRecipe('{{ recipe.name.replace('.txt', '') }}', `{{ recipe.content|e }}`)">?</div>
+                <!-- Info-Icon für Details -->
+                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <!-- Erstes Zeichen des Rezepts -->
                 <div class="letter">{{ recipe.name[0] }}</div>
+                <!-- Name des Rezepts ohne .txt -->
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+                <!-- Starten-Button -->
                 <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
             </div>
             {% endfor %}
@@ -338,10 +374,15 @@
         <div class="grid-container">
             {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
             <div class="grid-item invalid">
-                <div class="info-icon" onclick="analyzeRecipe('{{ recipe.name.replace('.txt', '') }}', `{{ recipe.content|e }}`)">?</div>
+                <!-- Info-Icon für Details -->
+                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <!-- Erstes Zeichen des Rezepts -->
                 <div class="letter">{{ recipe.name[0] }}</div>
+                <!-- Name des Rezepts ohne .txt -->
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+                <!-- Details-Button für ungültige Gründe -->
                 <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">Details anzeigen</button>
+                <!-- Unsichtbare Liste der Gründe -->
                 <div id="reasons-{{ loop.index }}" style="display:none;">
                     {% for reason in recipe.reasons %}
                         {{ reason }}
@@ -351,7 +392,7 @@
             {% endfor %}
         </div>
 
-        <!-- Modal for Recipe Details -->
+        <!-- Modal für Rezeptdetails -->
         <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
         <div id="drink-details-modal" class="modal">
             <h3>Rezept Zutaten</h3>
@@ -359,6 +400,7 @@
             <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
         </div>
 
+        <!-- Manuelle Steuerung anzeigen -->
         <div class="toggle-manual" style="text-align: center; margin-top: 20px;">
             <button onclick="toggleManualControl()" style="
                 background-color: #007bff;
@@ -374,6 +416,7 @@
             </button>
         </div>
 
+        <!-- Formular für manuelle Steuerung -->
         <form onsubmit="event.preventDefault(); sendManualCommand();" style="margin-top: 20px; display: none;">
             <label for="manualCommandType">Befehlstyp:</label>
             <select id="manualCommandType" name="manualCommandType" required>
@@ -397,7 +440,7 @@
         </form>
     </main>
     <footer>
-        &copy; 2024 BarTender System
+        &copy; 2024 Leo Fleischmann
     </footer>
 </body>
 
