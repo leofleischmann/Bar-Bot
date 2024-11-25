@@ -329,7 +329,7 @@ header h1 {
 
         const reasons = reasonsDiv.textContent.trim();
         if (reasons) {
-            showSnackbar("Fehlende Drinks:\n" + reasons, "error");
+            alert("Fehlende Drinks:\n" + reasons);
         } else {
             showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
         }
