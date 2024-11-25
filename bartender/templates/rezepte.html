@@ -195,7 +195,43 @@
 .recipe-buttons .delete:hover {
     background-color: #c82333;
 }
+/* Snackbar-Container */
+    .snackbar {
+        visibility: hidden; /* Standardmäßig unsichtbar */
+        min-width: 300px;
+        max-width: 90%; /* Für kleine Bildschirme anpassbar */
+        background-color: #333; /* Standardfarbe */
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 16px 20px;
+        position: fixed;
+        z-index: 1000;
+        left: 50%; /* Horizontal zentriert */
+        bottom: 30px; /* Unten im Viewport */
+        transform: translateX(-50%);
+        font-size: 16px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        opacity: 0; /* Unsichtbar */
+        transition: opacity 0.3s ease, bottom 0.3s ease;
+    }
 
+    /* Snackbar sichtbar */
+    .snackbar.show {
+        visibility: visible;
+        opacity: 1; /* Voll sichtbar */
+        bottom: 50px; /* Nach oben animieren */
+    }
+
+    /* Snackbar für Fehler */
+    .snackbar.error {
+        background-color: #f44336; /* Rot für Fehler */
+    }
+
+    /* Snackbar für Erfolg */
+    .snackbar.success {
+        background-color: #4caf50; /* Grün für Erfolg */
+    }
     </style>
 <script>
     function hideEditRecipeForm() {
@@ -221,7 +257,7 @@
         const content = document.getElementById("edit-recipe-content").value.trim();
 
         if (!content) {
-            alert("Das Rezept darf nicht leer sein.");
+            showSnackbar("Das Rezept darf nicht leer sein." , "error");
             return;
         }
 
@@ -234,7 +270,7 @@
         });
 
         const result = await response.json();
-        alert(result.message);
+        alert(result.message, "success");
         if (result.status === "success") {
             hideEditRecipeForm();
             location.reload();
@@ -265,7 +301,7 @@
         const content = document.getElementById("new-recipe-content").value.trim();
 
         if (!name || !content) {
-            alert("Bitte geben Sie einen Namen und Inhalt für das Rezept an.");
+            showSnackbar("Bitte geben Sie einen Namen und Inhalt für das Rezept an.", "error");
             return;
         }
 
@@ -278,7 +314,7 @@
         });
 
         const result = await response.json();
-        alert(result.message);
+        alert(result.message, "success");
         if (result.status === "success") {
             location.reload();
         }
@@ -315,7 +351,7 @@
         });
 
         if (!name || alcoholData.length === 0) {
-            alert("Bitte geben Sie einen Rezeptnamen und mindestens eine gültige Zutat mit Menge ein.");
+            showSnackbar("Bitte geben Sie einen Rezeptnamen und mindestens eine gültige Zutat mit Menge ein.", "error");
             return;
         }
 
@@ -332,6 +368,19 @@
         if (result.status === "success") {
             location.reload();
         }
+    }
+
+    function showSnackbar(message, type = "success") {
+        const snackbar = document.getElementById("snackbar");
+        snackbar.textContent = message; // Setzt den Text der Snackbar
+        snackbar.className = "snackbar"; // Standardstil
+        snackbar.classList.add(type); // Fügt Erfolg- oder Fehlerstil hinzu
+        snackbar.classList.add("show"); // Snackbar anzeigen
+
+        // Nach 3 Sekunden ausblenden
+        setTimeout(() => {
+            snackbar.classList.remove("show");
+        }, 3000);
     }
 </script>
 
@@ -432,5 +481,6 @@
     <footer>
         &copy; 2024 Leo Fleischmann
     </footer>
+    <div id="snackbar" class="snackbar"></div>
 </body>
 </html>
