@@ -190,16 +190,21 @@
         transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
-    /* Snackbar sichtbar */
+   /* Snackbar sichtbar */
     .snackbar.show {
         visibility: visible;
-        opacity: 1;
-        transform: translate(-50%, -45%); /* Nach oben animieren */
+        opacity: 1; /* Voll sichtbar */
+        bottom: 50px; /* Nach oben animieren */
     }
 
-    /* Snackbar Fehlerstil */
+    /* Snackbar für Fehler */
     .snackbar.error {
         background-color: #f44336; /* Rot für Fehler */
+    }
+
+    /* Snackbar für Erfolg */
+    .snackbar.success {
+        background-color: #4caf50; /* Grün für Erfolg */
     }
 </style>
 
