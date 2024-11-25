@@ -129,6 +129,73 @@
             font-size: 14px;
             color: #666;
         }
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.grid-item {
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.grid-item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.letter {
+    font-size: 36px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 10px;
+}
+
+.name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.recipe-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.recipe-buttons button {
+    font-size: 14px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.recipe-buttons .edit {
+    background-color: #28a745;
+}
+
+.recipe-buttons .edit:hover {
+    background-color: #218838;
+}
+
+.recipe-buttons .delete {
+    background-color: #dc3545;
+}
+
+.recipe-buttons .delete:hover {
+    background-color: #c82333;
+}
+
     </style>
 <script>
     function hideEditRecipeForm() {
@@ -278,18 +345,26 @@
             <button onclick="window.location.href='/'">Zurück zur Übersicht</button>
         </nav>
 
-        <section class="recipe-list">
-            <h2>Bestehende Rezepte</h2>
-            {% for recipe_name, recipe_content in recipes.items() %}
-            <div class="recipe-item">
-                <span>{{ recipe_name }}</span>
-                <div class="recipe-buttons">
-                    <button class="edit" onclick="editRecipe('{{ recipe_name }}', `{{ recipe_content }}`)">Bearbeiten</button>
-                    <button class="delete" onclick="deleteRecipe('{{ recipe_name }}')">Löschen</button>
-                </div>
+<section class="recipe-list">
+    <h2>Bestehende Rezepte</h2>
+    <div class="grid-container">
+        {% for recipe_name, recipe_content in recipes|dictsort %}
+        <div class="grid-item valid">
+            <!-- Erstes Zeichen des Rezeptnamens -->
+            <div class="letter">{{ recipe_name[0] }}</div>
+            <!-- Name des Rezepts ohne .txt -->
+            <div class="name">{{ recipe_name.replace('.txt', '') }}</div>
+            <!-- Bearbeiten- und Löschen-Buttons -->
+            <div class="recipe-buttons">
+                <button class="edit" onclick="editRecipe('{{ recipe_name }}', `{{ recipe_content }}`)">Bearbeiten</button>
+                <button class="delete" onclick="deleteRecipe('{{ recipe_name }}')">Löschen</button>
             </div>
-            {% endfor %}
-        </section>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+
 
         <section class="edit-recipe" style="display: none;">
             <h2>Rezept bearbeiten</h2>
