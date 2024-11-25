@@ -5,158 +5,171 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Konfiguration verwalten</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #007bff;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-        main {
-            padding: 20px;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        nav {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        nav button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        nav button:hover {
-            background-color: #0056b3;
-        }
-        .config-section {
-            margin-bottom: 30px;
-        }
-        .config-section h2 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .pour-time-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .pour-time-container input {
-            width: 100px;
-            padding: 8px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            text-align: right;
-        }
-        .config-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .config-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: white;
-            padding: 10px 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        .config-name {
-            width: 45%;
-            padding: 8px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        .config-position {
-            width: 20%;
-            padding: 8px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
-            text-align: right;
-        }
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        background-color: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+    header h1 {
+        margin: 0;
+        font-size: 24px;
+    }
+    main {
+        padding: 20px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    nav {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    nav button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    nav button:hover {
+        background-color: #0056b3;
+    }
+    .config-section {
+        margin-bottom: 30px;
+    }
+    .config-section h2 {
+        font-size: 20px;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    .pour-time-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .pour-time-container input {
+        width: 100px;
+        padding: 8px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        text-align: right;
+    }
+    .config-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .config-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* Gleichmäßige Verteilung */
+        background-color: white;
+        padding: 10px 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .config-item.dragging {
+        background-color: #e0e0e0; /* Grauer Hintergrund */
+        transform: scale(1.05); /* Vergrößert das Element leicht */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Hebt das Element optisch hervor */
+        transition: background-color 0.2s, transform 0.2s; /* Sanfte Übergänge */
+    }
+    .config-name {
+        width: 45%;
+        padding: 8px;
+        margin-right: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .config-position {
+        width: 20%;
+        padding: 8px;
+        margin-right: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+        text-align: right;
+    }
+    .config-drag {
+        cursor: grab;
+        color: #666;
+        font-size: 18px;
+        margin-right: 15px; /* Standardabstand */
+    }
+    .config-drag:active {
+        cursor: grabbing;
+    }
+    .config-item button {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .config-item button:hover {
+        background-color: #c82333;
+    }
+    @media (max-width: 768px) {
         .config-drag {
-            cursor: grab;
-            color: #666;
-            font-size: 18px;
+            margin-right: 10px; /* Kleinere Abstände auf mobilen Geräten */
         }
-        .config-drag:active {
-            cursor: grabbing;
-        }
-        .config-item button {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .config-item button:hover {
-            background-color: #c82333;
-        }
-        .add-config {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .add-config button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .add-config button:hover {
-            background-color: #0056b3;
-        }
-        .save-button {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .save-button button {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .save-button button:hover {
-            background-color: #218838;
-        }
-        footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
-    </style>
+    }
+    .add-config {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .add-config button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .add-config button:hover {
+        background-color: #0056b3;
+    }
+    .save-button {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .save-button button {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .save-button button:hover {
+        background-color: #218838;
+    }
+    footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+    }
+</style>
+
     <script>
         async function saveConfig() {
             const pourTimeInput = document.getElementById("pour-time-value").value.trim();
@@ -254,6 +267,14 @@
         }
 
         document.addEventListener("DOMContentLoaded", enableDragAndDrop);
+
+        dragHandle.addEventListener("dragstart", () => {
+            item.classList.add("dragging");
+        });
+
+        dragHandle.addEventListener("dragend", () => {
+            item.classList.remove("dragging");
+        });
     </script>
 </head>
 <body>
