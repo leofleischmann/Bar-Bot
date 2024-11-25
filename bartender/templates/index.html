@@ -71,11 +71,6 @@ header h1 {
         flex-direction: column;
     }
 
-    header h1 {
-        position: static;
-        transform: none;
-    }
-
     #esp-status {
         justify-content: center;
         margin-top: 10px;
@@ -401,6 +396,38 @@ function closeDrinkDetails() {
     overlay.style.display = "none";
 }
 
+function updateESPStatus() {
+    fetch("/esp_status")
+        .then(response => response.json())
+        .then(data => {
+            const statusElement = document.getElementById("esp-status");
+            if (data.connected) {
+                statusElement.innerHTML = `
+                    <span class="status connected">
+                        <span class="indicator"></span> ESP verbunden
+                    </span>`;
+            } else {
+                statusElement.innerHTML = `
+                    <span class="status disconnected">
+                        <span class="indicator"></span> ESP nicht verbunden
+                    </span>`;
+            }
+        })
+        .catch(error => {
+            console.error("Fehler beim Abrufen des ESP-Status:", error);
+            const statusElement = document.getElementById("esp-status");
+            statusElement.innerHTML = `
+                <span class="status disconnected">
+                    <span class="indicator"></span> ESP nicht verbunden
+                </span>`;
+        });
+}
+
+// Initiale Statusabfrage
+updateESPStatus();
+
+// Status alle 5 Sekunden aktualisieren
+setInterval(updateESPStatus, 5000);
 </script>
 
 </head>
