@@ -168,24 +168,70 @@
         font-size: 14px;
         color: #666;
     }
+
+    /* Snackbar-Container */
+    .snackbar {
+        visibility: hidden; /* Standardmäßig unsichtbar */
+        min-width: 300px;
+        max-width: 90%; /* Für kleine Bildschirme anpassbar */
+        background-color: #4caf50; /* Grüne Farbe für Erfolg */
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 16px 20px;
+        position: fixed;
+        z-index: 1000;
+        left: 50%; /* Horizontal zentriert */
+        top: 20%; /* Vertikal zentriert */
+        transform: translate(-50%, -50%);
+        font-size: 16px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        opacity: 0; /* Unsichtbar */
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    /* Snackbar sichtbar */
+    .snackbar.show {
+        visibility: visible;
+        opacity: 1;
+        transform: translate(-50%, -45%); /* Nach oben animieren */
+    }
+
+    /* Snackbar Fehlerstil */
+    .snackbar.error {
+        background-color: #f44336; /* Rot für Fehler */
+    }
 </style>
 
     <script>
-        async function saveConfig() {
-            const pourTimeInput = document.getElementById("pour-time-value").value.trim();
-            const items = document.querySelectorAll(".config-item");
-            const config = { pour_time: parseInt(pourTimeInput) || 0 };
+        function showSnackbar(message, isError = false) {
+        const snackbar = document.getElementById("snackbar");
+        snackbar.textContent = message; // Nachricht in die Snackbar schreiben
+        snackbar.className = 'snackbar'; // Bestehende Klassen zurücksetzen
+        if (isError) {
+            snackbar.classList.add('error'); // Fehlerstil hinzufügen
+        }
+        snackbar.classList.add('show'); // Snackbar anzeigen
 
+        // Nach 3 Sekunden wieder ausblenden
+        setTimeout(() => {
+            snackbar.classList.remove('show');
+        }, 3000);
+    }
+
+    async function saveConfig() {
+        const pourTimeInput = document.getElementById("pour-time-value").value.trim();
+        const items = document.querySelectorAll(".config-item");
+        const config = { pour_time: parseInt(pourTimeInput) || 0 };
+
+        try {
             items.forEach(item => {
                 const nameInput = item.querySelector(".config-name");
                 const name = nameInput.value.trim();
                 const position = parseInt(item.querySelector(".config-position").value.trim());
 
-                // Validierung des Namens
                 if (!/^[a-zA-Z0-9_]+$/.test(name)) {
-                    alert(`Ungültiger Name: "${name}". Nur Buchstaben, Zahlen und Unterstriche sind erlaubt.`);
-                    nameInput.focus();
-                    throw new Error("Ungültige Eingabe");
+                    throw new Error(`Ungültiger Name: ${name}`);
                 }
 
                 if (name && !isNaN(position)) {
@@ -196,16 +242,21 @@
             const response = await fetch("/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ config })
+                body: JSON.stringify({ config }),
             });
 
             const result = await response.json();
-            alert(result.message);
             if (result.status === "success") {
-                location.reload();
+                showSnackbar("Konfiguration erfolgreich gespeichert"); // Erfolgsmeldung
+            } else {
+                throw new Error("Fehler beim Speichern der Konfiguration");
             }
+        } catch (error) {
+            showSnackbar(error.message, true); // Fehlermeldung
         }
+    }
 
+        
         function addConfigRow() {
             const container = document.querySelector(".config-list");
             const newItem = document.createElement("div");
@@ -275,6 +326,7 @@
         dragHandle.addEventListener("dragend", () => {
             item.classList.remove("dragging");
         });
+
     </script>
 </head>
 <body>
@@ -325,5 +377,8 @@
     <footer>
         &copy; 2024 Leo Fleischmann
     </footer>
+    
+    <div id="snackbar" class="snackbar"></div>
+
 </body>
 </html>
