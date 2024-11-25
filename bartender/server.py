@@ -128,7 +128,7 @@ def manage_recipes():
         # Lade die konfigurierte Liste der Alkoholsorten
         config = load_config()
         configured_alcohols = list(config.keys())  # Alkohol-Sorten aus der Konfiguration
-        
+
         # Übergabe der Rezepte und konfigurierten Alkoholsorten an das Frontend
         return render_template("rezepte.html", recipes=recipes, configured_alcohols=configured_alcohols)
 
@@ -177,6 +177,27 @@ def run_recipe():
     thread = Thread(target=execute_recipe, args=(recipe_file,))
     thread.start()
     return jsonify({"status": "success", "message": f"Rezept '{recipe_file}' gestartet."})
+
+
+@app.route("/get_recipe_content", methods=["GET"])
+def get_recipe_content():
+    recipe_name = request.args.get("name")
+    if not recipe_name:
+        return "Rezeptname fehlt.", 400
+
+    recipe_path = os.path.join(RECIPE_FOLDER, recipe_name)
+    if not os.path.exists(recipe_path):
+        return "Rezeptdatei nicht gefunden.", 404
+
+    try:
+        with open(recipe_path, "r") as file:
+            content = file.read()
+        if not content.strip():
+            return "Rezeptdatei ist leer.", 400
+        return content
+    except Exception as e:
+        return f"Fehler beim Lesen der Datei: {str(e)}", 500
+
 
 
 @app.route("/send_command", methods=["POST"])
