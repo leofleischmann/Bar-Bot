@@ -83,6 +83,7 @@ void setup() {
   Serial.println("Webserver-Routen definieren...");
   server.on("/move", HTTP_POST, handleMove);
   server.on("/servo", HTTP_POST, handleServo);
+  server.on("/status", HTTP_GET, handleStatus);
   server.begin();
   Serial.println("Webserver gestartet.");
 
@@ -254,4 +255,9 @@ void handleServo() {
   myServo.write(90);
 
   server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Servo-Bewegung abgeschlossen\"}");
+}
+
+// Webserver-Route: Status überprüfen
+void handleStatus() {
+    server.send(200, "application/json", "{\"status\":\"online\",\"message\":\"ESP verbunden\"}");
 }
