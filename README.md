@@ -42,6 +42,6 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 ![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/aef47b5e8c036a115e24fcea56c180e6691d0192/AutoBarTender_constructed_v1_2024-Nov-18_06-47-27PM-000.png?raw=true)
 
 # About the Website:
-![index.html](https://github.com/leofleischmann/Bar-Bot/blob/3d107a8f69a7a1337c4d5f3ebdf53a4c28e42e59/Images/index.png?raw=true)
-![config.html](https://github.com/leofleischmann/Bar-Bot/blob/ae1de67198a41afd0f7748fb647b31d3b8999d1d/Images/config_V2.png?raw=true)
+![index.html](https://github.com/leofleischmann/Bar-Bot/blob/3d107a8f69a7a1337c4d5f3ebdf53a4c28e42e59/Images/index_V2.png?raw=true)
+![config.html](https://github.com/leofleischmann/Bar-Bot/blob/ae1de67198a41afd0f7748fb647b31d3b8999d1d/Images/config.png?raw=true)
 ![rezepte.html](https://github.com/leofleischmann/Bar-Bot/blob/3d107a8f69a7a1337c4d5f3ebdf53a4c28e42e59/Images/rezepte.png?raw=true)
