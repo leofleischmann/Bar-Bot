@@ -68,14 +68,25 @@ header h1 {
 
 @media (max-width: 600px) {
     .header-container {
-        flex-direction: column;
+        flex-direction: column; /* Elemente vertikal anordnen */
+        align-items: center; /* Zentriere alle Inhalte */
     }
 
     #esp-status {
         justify-content: center;
         margin-top: 10px;
+        text-align: center; /* Zentriert den Text für Mobilgeräte */
+    }
+
+    header h1 {
+        position: static; /* Entfernt absolute Positionierung */
+        transform: none; /* Entfernt zentrierte Übersetzung */
+        font-size: 24px; /* Passt die Schriftgröße für Mobilgeräte an */
+        margin: 0 0 10px 0; /* Abstand nach unten */
+        text-align: center; /* Überschrift auf mobilen Geräten zentrieren */
     }
 }
+
 
         main {
             padding: 20px;
