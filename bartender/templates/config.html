@@ -174,7 +174,7 @@
         visibility: hidden; /* Standardmäßig unsichtbar */
         min-width: 300px;
         max-width: 90%; /* Für kleine Bildschirme anpassbar */
-        background-color: #4caf50; /* Grüne Farbe für Erfolg */
+        background-color: #333; /* Standardfarbe */
         color: #fff;
         text-align: center;
         border-radius: 8px;
@@ -182,15 +182,15 @@
         position: fixed;
         z-index: 1000;
         left: 50%; /* Horizontal zentriert */
-        top: 20%; /* Vertikal zentriert */
-        transform: translate(-50%, -50%);
+        bottom: 30px; /* Unten im Viewport */
+        transform: translateX(-50%);
         font-size: 16px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         opacity: 0; /* Unsichtbar */
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition: opacity 0.3s ease, bottom 0.3s ease;
     }
 
-   /* Snackbar sichtbar */
+    /* Snackbar sichtbar */
     .snackbar.show {
         visibility: visible;
         opacity: 1; /* Voll sichtbar */
@@ -209,18 +209,16 @@
 </style>
 
     <script>
-        function showSnackbar(message, isError = false) {
+        function showSnackbar(message, type = "success") {
         const snackbar = document.getElementById("snackbar");
-        snackbar.textContent = message; // Nachricht in die Snackbar schreiben
-        snackbar.className = 'snackbar'; // Bestehende Klassen zurücksetzen
-        if (isError) {
-            snackbar.classList.add('error'); // Fehlerstil hinzufügen
-        }
-        snackbar.classList.add('show'); // Snackbar anzeigen
+        snackbar.textContent = message; // Setzt den Text der Snackbar
+        snackbar.className = "snackbar"; // Standardstil
+        snackbar.classList.add(type); // Fügt Erfolg- oder Fehlerstil hinzu
+        snackbar.classList.add("show"); // Snackbar anzeigen
 
-        // Nach 3 Sekunden wieder ausblenden
+        // Nach 3 Sekunden ausblenden
         setTimeout(() => {
-            snackbar.classList.remove('show');
+            snackbar.classList.remove("show");
         }, 3000);
     }
 
@@ -252,12 +250,12 @@
 
             const result = await response.json();
             if (result.status === "success") {
-                showSnackbar("Konfiguration erfolgreich gespeichert"); // Erfolgsmeldung
+                showSnackbar("Konfiguration erfolgreich gespeichert", "success"); // Erfolgsmeldung
             } else {
                 throw new Error("Fehler beim Speichern der Konfiguration");
             }
         } catch (error) {
-            showSnackbar(error.message, true); // Fehlermeldung
+            showSnackbar(error.message, "error"); // Fehlermeldung
         }
     }
 
@@ -323,14 +321,6 @@
         }
 
         document.addEventListener("DOMContentLoaded", enableDragAndDrop);
-
-        dragHandle.addEventListener("dragstart", () => {
-            item.classList.add("dragging");
-        });
-
-        dragHandle.addEventListener("dragend", () => {
-            item.classList.remove("dragging");
-        });
 
     </script>
 </head>
