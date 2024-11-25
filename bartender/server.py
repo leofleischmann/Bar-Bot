@@ -37,10 +37,18 @@ def save_config(config):
     except Exception as e:
         print(f"Fehler beim Speichern der Konfigurationsdatei: {e}")
 
+def check_esp_connection():
+    """Prüft, ob der ESP erreichbar ist."""
+    try:
+        response = requests.get(f"http://{ESP_IP}:{ESP_PORT}/", timeout=2)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
 
 @app.route("/")
 def index():
-    """Startseite: Zeigt die Liste der Rezepte an."""
+    """Startseite: Zeigt die Liste der Rezepte und den ESP-Status an."""
     recipes = []
     config = load_config()
 
@@ -94,7 +102,8 @@ def index():
                 "reasons": invalid_reasons
             })
 
-    return render_template("index.html", recipes=recipes, active_recipe=active_recipe, is_running=is_running)
+    esp_connected = check_esp_connection()  # Prüfen, ob der ESP verbunden ist
+    return render_template("index.html", recipes=recipes, esp_connected=esp_connected, active_recipe=active_recipe, is_running=is_running)
 
 
 @app.route("/config", methods=["GET", "POST"])
