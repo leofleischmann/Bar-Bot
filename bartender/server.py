@@ -38,13 +38,16 @@ def save_config(config):
         print(f"Fehler beim Speichern der Konfigurationsdatei: {e}")
 
 def check_esp_connection():
-    """Prüft, ob der ESP erreichbar ist."""
+    """Prüft, ob der ESP erreichbar ist und eine gültige Antwort zurückgibt."""
     try:
-        response = requests.get(f"http://{ESP_IP}:{ESP_PORT}/", timeout=2)
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
+        response = requests.get(f"http://{ESP_IP}:{ESP_PORT}/status", timeout=2)
+        if response.status_code == 200:
+            data = response.json()  # JSON-Daten auslesen
+            return data.get("status") == "online"  # Prüfen, ob Status 'online' ist
         return False
-
+    except requests.exceptions.RequestException as e:
+        print(f"Fehler beim Prüfen des ESP-Status: {e}")
+        return False
 
 @app.route("/")
 def index():
