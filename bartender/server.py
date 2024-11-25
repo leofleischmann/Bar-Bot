@@ -105,6 +105,12 @@ def index():
     esp_connected = check_esp_connection()  # Prüfen, ob der ESP verbunden ist
     return render_template("index.html", recipes=recipes, esp_connected=esp_connected, active_recipe=active_recipe, is_running=is_running)
 
+@app.route("/esp_status")
+def esp_status():
+    """Prüft, ob der ESP erreichbar ist und gibt den Status zurück."""
+    esp_connected = check_esp_connection()
+    return jsonify({"connected": esp_connected})
+
 
 @app.route("/config", methods=["GET", "POST"])
 def manage_config():
