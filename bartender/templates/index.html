@@ -301,24 +301,32 @@ header h1 {
     }
     </style>
 <script>
-     async function startRecipe(recipeName) {
-        try {
-            const response = await fetch("/run_recipe", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ recipe: recipeName }),
-            });
-            const result = await response.json();
 
-            if (response.ok) {
-                showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`, "success");
-            } else {
-                throw new Error(result.message || "Fehler beim Starten des Rezepts");
-            }
-        } catch (error) {
-            showSnackbar(error.message, "error");
-        }
+async function startRecipe(recipeName) {
+    if (!espConnected) {
+        showSnackbar("ESP ist nicht verbunden. Bitte überprüfen Sie die Verbindung.", "error");
+        return; // Rezeptstart abbrechen
     }
+
+    try {
+        const response = await fetch("/run_recipe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipe: recipeName }),
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`, "success");
+            startProgressTracking(); // Fortschrittsanzeige starten
+        } else {
+            throw new Error(result.message || "Fehler beim Starten des Rezepts");
+        }
+    } catch (error) {
+        showSnackbar(error.message, "error");
+    }
+}
+
 
     function showInvalidReasons(recipeId) {
         const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
@@ -452,11 +460,15 @@ function closeDrinkDetails() {
     overlay.style.display = "none";
 }
 
+let espConnected = false;
+
 function updateESPStatus() {
     fetch("/esp_status")
         .then(response => response.json())
         .then(data => {
+            espConnected = data.connected; // Aktualisiere den Verbindungsstatus
             const statusElement = document.getElementById("esp-status");
+
             if (data.connected) {
                 statusElement.innerHTML = `
                     <span class="status connected">
@@ -471,6 +483,7 @@ function updateESPStatus() {
         })
         .catch(error => {
             console.error("Fehler beim Abrufen des ESP-Status:", error);
+            espConnected = false; // Bei Fehler Verbindung als getrennt markieren
             const statusElement = document.getElementById("esp-status");
             statusElement.innerHTML = `
                 <span class="status disconnected">
@@ -478,6 +491,36 @@ function updateESPStatus() {
                 </span>`;
         });
 }
+
+    
+    let progressInterval;
+
+async function fetchProgress() {
+    try {
+        const response = await fetch("/recipe_progress");
+        const data = await response.json();
+        const progress = data.progress;
+
+        const progressBar = document.getElementById("progress-bar");
+        const progressText = document.getElementById("progress-text");
+
+        progressBar.style.width = progress + "%";
+        progressText.textContent = `Fortschritt: ${progress}%`;
+
+        if (progress >= 100) {
+            clearInterval(progressInterval);
+            alert("Rezept abgeschlossen!");
+        }
+    } catch (error) {
+        console.error("Fehler beim Abrufen des Fortschritts:", error);
+    }
+}
+
+function startProgressTracking() {
+    document.getElementById("progress-container").style.display = "block";
+    progressInterval = setInterval(fetchProgress, 1000); // Alle 1 Sekunde
+}
+
 
     function showSnackbar(message, type = "success") {
         const snackbar = document.getElementById("snackbar");
@@ -615,6 +658,14 @@ setInterval(updateESPStatus, 5000);
     <footer>
         &copy; 2024 Leo Fleischmann
     </footer>
+
+    <div id="progress-container" style="display: none; text-align: center; margin-top: 20px;">
+        <p id="progress-text">Fortschritt: 0%</p>
+        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
+            <div id="progress-bar" style="width: 0%; background-color: #28a745; height: 20px; border-radius: 10px;"></div>
+        </div>
+    </div>
+
 
     <div id="snackbar" class="snackbar"></div>
 </body>
