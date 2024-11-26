@@ -13,6 +13,7 @@ ESP_PORT = 80
 
 active_recipe = None  # Aktiver Rezeptname
 is_running = False    # Status, ob ein Rezept läuft
+current_progress = 0  # Globaler Fortschritt
 
 
 def load_config():
@@ -308,22 +309,31 @@ def generate_recipe():
         print(f"Fehler beim Generieren des Rezepts: {e}")
         return jsonify({"status": "error", "message": "Fehler beim Generieren des Rezepts."}), 500
 
+@app.route("/recipe_progress", methods=["GET"])
+def recipe_progress():
+    global current_progress
+    return jsonify({"progress": current_progress})
 
 def execute_recipe(recipe_file):
-    """Führt ein Rezept aus der angegebenen Datei aus."""
-    global active_recipe, is_running
+    global active_recipe, is_running, current_progress
     active_recipe = recipe_file
     is_running = True
+    current_progress = 0
 
     config = load_config()
-    pour_time = config.get("pour_time", 1000)  # Standard-Pour-Time ist 1000 ms für 2 cl
+    pour_time = config.get("pour_time", 1000)
 
     try:
         with open(os.path.join(RECIPE_FOLDER, recipe_file), "r") as file:
-            for line in file:
+            commands = file.readlines()
+            total_commands = len(commands)
+            for idx, line in enumerate(commands):
                 command = line.strip()
                 if not command:
                     continue
+
+                # Update Fortschritt
+                current_progress = int((idx + 1) / total_commands * 100)
 
                 if command.startswith("start"):
                     print(f"Rezept '{recipe_file}' gestartet.")
@@ -371,7 +381,7 @@ def execute_recipe(recipe_file):
 
     is_running = False
     active_recipe = None
-
+    current_progress = 100
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
