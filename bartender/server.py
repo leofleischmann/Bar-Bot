@@ -184,10 +184,12 @@ def manage_recipes():
 
 @app.route("/run_recipe", methods=["POST"])
 def run_recipe():
-    """Startet die Ausführung eines Rezepts."""
     global is_running
     if is_running:
         return jsonify({"status": "error", "message": "Ein Rezept wird bereits ausgeführt."}), 400
+
+    if not check_esp_connection():  # ESP-Status prüfen
+        return jsonify({"status": "error", "message": "ESP ist nicht verbunden."}), 400
 
     recipe_file = request.json.get("recipe")
     if not recipe_file or not os.path.exists(os.path.join(RECIPE_FOLDER, recipe_file)):
@@ -196,6 +198,7 @@ def run_recipe():
     thread = Thread(target=execute_recipe, args=(recipe_file,))
     thread.start()
     return jsonify({"status": "success", "message": f"Rezept '{recipe_file}' gestartet."})
+
 
 
 @app.route("/get_recipe_content", methods=["GET"])
