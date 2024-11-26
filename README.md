@@ -9,6 +9,7 @@ This is my take on the Automatic Bartender Robot (original: https://github.com/s
 - You can freely decide which drink you want to put on which position. Then you can configure the drink and location in the webserver. (/config)
 - You can easily create new recipes and manage your existing ones. (/rezepte)
 - You can decide what drink is made with a click of a button. The available recipes are shown in green, while the other ones are red. You can see details on why a recipe is not available.
+- Additionally you can see the contents of a recipe with the "?" icon
 - Chancing location of drinks is as easy as it gets. Just set the name of your drink and the position.
 - Adding new recipes is also very easy. Just select the drink and the quantity, and a file with the instructions for the esp is automatically created.
 - When Bottles are reordered, it still works perfectly, as long as you define the new locations on the /config page
