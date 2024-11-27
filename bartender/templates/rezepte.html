@@ -320,22 +320,20 @@
         }
     }
 
-    function addDrinkRow() {
-        const container = document.getElementById("drink-container");
-        const row = document.createElement("div");
-        row.className = "drink-row";
-        row.innerHTML = `
-            <select class="generate-recipe-drink">
-                {% for alcohol in configured_alcohols %}
-                {% if alcohol != "pour_time" %}
-                <option value="{{ alcohol }}">{{ alcohol }}</option>
-                {% endif %}
-                {% endfor %}
-            </select>
-            <input type="number" class="generate-recipe-amount" step="0.1" placeholder="Menge in cl">
-        `;
-        container.appendChild(row);
-    }
+function addDrinkRow() {
+    const container = document.getElementById("drink-container");
+    const row = document.createElement("div");
+    row.className = "drink-row";
+    row.innerHTML = `
+        <select class="generate-recipe-drink">
+            {% for alcohol in configured_alcohols %}
+            <option value="{{ alcohol }}">{{ alcohol }}</option>
+            {% endfor %}
+        </select>
+        <input type="number" class="generate-recipe-amount" step="0.1" placeholder="Menge in cl">
+    `;
+    container.appendChild(row);
+}
 
     async function generateRecipe() {
         const name = document.getElementById("generate-recipe-name").value.trim();
