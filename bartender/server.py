@@ -154,15 +154,26 @@ def manage_recipes():
                 with open(os.path.join(RECIPE_FOLDER, filename), "r") as file:
                     recipes[filename] = file.read()
 
-        # Lade die konfigurierte Liste der Alkoholsorten
+        # Lade die Konfigurationsdaten
         config = load_config()
-        configured_alcohols = list(config.keys())  # Alkohol-Sorten aus der Konfiguration
 
-        # Übergabe der Rezepte und konfigurierten Alkoholsorten an das Frontend
-        return render_template("rezepte.html", recipes=recipes, configured_alcohols=configured_alcohols)
+        # Extrahiere Getränke aus der Konfiguration
+        drinks = [
+            key for key in config.keys()
+            if not key.startswith("pump") and key not in ["pour_time", "pump_time", "pumpen"]
+        ]
+
+        # Füge die Getränke aus den Pumpenparametern hinzu
+        for i in range(1, 5):  # pump1 bis pump4
+            pump_drink = config.get(f"pump{i}")
+            if pump_drink and pump_drink not in drinks:
+                drinks.append(pump_drink)
+
+        # Übergabe der Rezepte und Getränke an das Frontend
+        return render_template("rezepte.html", recipes=recipes, configured_alcohols=drinks)
 
     elif request.method == "POST":
-        # Neues Rezept erstellen oder bestehendes Rezept bearbeiten
+        # Rezept hinzufügen oder bearbeiten
         data = request.json
         name = data.get("name")
         content = data.get("content")
