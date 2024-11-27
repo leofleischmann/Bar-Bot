@@ -222,42 +222,57 @@
         }, 3000);
     }
 
-    async function saveConfig() {
-        const pourTimeInput = document.getElementById("pour-time-value").value.trim();
-        const items = document.querySelectorAll(".config-item");
-        const config = { pour_time: parseInt(pourTimeInput) || 0 };
+async function saveConfig() {
+    const pourTimeInput = document.getElementById("pour-time-value").value.trim();
+    const pumpTimeInput = document.getElementById("pump-time").value.trim();
+    const pumpPositionInput = document.getElementById("pump-position").value.trim();
+    const pumpItems = document.querySelectorAll("#pump-config-list .config-item");
+    const drinkItems = document.querySelectorAll("#drink-config-list .config-item");
 
-        try {
-            items.forEach(item => {
-                const nameInput = item.querySelector(".config-name");
-                const name = nameInput.value.trim();
-                const position = parseInt(item.querySelector(".config-position").value.trim());
+    // Konfigurationsobjekt erstellen
+    const config = {
+        pour_time: parseInt(pourTimeInput) || 2000,  // Standardwert, falls leer
+        pump_time: parseInt(pumpTimeInput) || 1000, // Standardwert, falls leer
+        pumpen: parseInt(pumpPositionInput) || 250  // Standardwert, falls leer
+    };
 
-                if (!/^[a-zA-Z0-9_]+$/.test(name)) {
-                    throw new Error(`Ungültiger Name: ${name}`);
-                }
-
-                if (name && !isNaN(position)) {
-                    config[name] = position;
-                }
-            });
-
-            const response = await fetch("/config", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ config }),
-            });
-
-            const result = await response.json();
-            if (result.status === "success") {
-                showSnackbar("Konfiguration erfolgreich gespeichert", "success"); // Erfolgsmeldung
-            } else {
-                throw new Error("Fehler beim Speichern der Konfiguration");
-            }
-        } catch (error) {
-            showSnackbar(error.message, "error"); // Fehlermeldung
+    // Pumpen-Daten hinzufügen
+    pumpItems.forEach((pumpItem, index) => {
+        const drinkName = pumpItem.querySelector(".config-name").value.trim();
+        if (drinkName) {
+            config[`pump${index + 1}`] = drinkName;
         }
+    });
+
+    // Getränke-Daten hinzufügen
+    drinkItems.forEach(drinkItem => {
+        const name = drinkItem.querySelector(".config-name").value.trim();
+        const position = parseInt(drinkItem.querySelector(".config-position").value.trim());
+        if (name && !isNaN(position)) {
+            config[name] = position;
+        }
+    });
+
+    try {
+        // Konfiguration an den Server senden
+        const response = await fetch("/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ config }),
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+            showSnackbar("Konfiguration erfolgreich gespeichert", "success");
+        } else {
+            throw new Error(result.message || "Fehler beim Speichern der Konfiguration");
+        }
+    } catch (error) {
+        showSnackbar(error.message, "error");
     }
+}
+
+
 
         
         function addConfigRow() {
@@ -279,6 +294,18 @@
             item.remove();
         }
 
+function addPumpConfigRow() {
+    const container = document.getElementById("pump-config-list");
+    const newItem = document.createElement("div");
+    newItem.className = "config-item";
+    newItem.innerHTML = `
+        <input type="text" class="config-name" placeholder="Getränk" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
+        <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
+    `;
+    container.appendChild(newItem);
+}
+
+        
         function enableDragAndDrop() {
             const items = document.querySelectorAll(".config-item");
             const list = document.querySelector(".config-list");
@@ -343,11 +370,11 @@
         </section>
 
         <!-- Drinks Configuration Section -->
-        <section>
+        <section class="config-section">
             <h2>Getränkekonfiguration</h2>
-            <div class="config-list">
+            <div class="config-list" id="drink-config-list">
                 {% for name, position in config.items() %}
-                {% if name != "pour_time" %}
+                {% if name != "pour_time" and not name.startswith("pump") and name != "pump_time" and name != "pumpen" %}
                 <div class="config-item">
                     <input type="text" class="config-name" value="{{ name }}" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
                     <input type="number" class="config-position" value="{{ position }}" placeholder="Position in mm">
@@ -357,12 +384,42 @@
                 {% endif %}
                 {% endfor %}
             </div>
+
+            <!-- Button zum Hinzufügen neuer Getränke -->
+            <div class="add-config">
+                <button onclick="addDrinkConfigRow()">Getränk hinzufügen</button>
+            </div>
         </section>
 
-        <!-- Add New Configuration -->
-        <div class="add-config">
-            <button onclick="addConfigRow()">Eintrag hinzufügen</button>
-        </div>
+        <!-- Pumps Configuration Section -->
+        <section class="config-section">
+            <h2>Pumpen-Konfiguration</h2>
+
+            <!-- Globale Einstellungen für Pumpen -->
+            <div class="pour-time-container">
+                <label for="pump-time">Zeit für 1 cl (in ms):</label>
+                <input type="number" id="pump-time" value="{{ config.pump_time }}" placeholder="1000">
+            </div>
+            <div class="pour-time-container">
+                <label for="pump-position">Position in mm:</label>
+                <input type="number" id="pump-position" value="{{ config.pumpen }}" placeholder="Position in mm">
+            </div>
+
+            <!-- Liste der Pumpen (nur Getränke-Namen) -->
+            <div class="config-list" id="pump-config-list">
+                {% for i in range(1, 5) %}
+                <div class="config-item">
+                    <input type="text" class="config-name" value="{{ config['pump' ~ i] }}" placeholder="Getränk" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
+                    <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Button zum Hinzufügen neuer Pumpen -->
+            <div class="add-config">
+                <button onclick="addPumpConfigRow()">Pumpe hinzufügen</button>
+            </div>
+        </section>
 
         <!-- Save Button -->
         <div class="save-button">
@@ -374,6 +431,6 @@
     </footer>
     
     <div id="snackbar" class="snackbar"></div>
-
 </body>
+
 </html>
