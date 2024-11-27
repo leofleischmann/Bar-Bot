@@ -565,6 +565,14 @@ setInterval(updateESPStatus, 5000);
 </header>
 
     <main>
+
+    <div id="progress-container" style="display: none; text-align: center; margin-top: 20px;">
+        <p id="progress-text">Fortschritt: 0%</p>
+        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
+            <div id="progress-bar" style="width: 0%; background-color: #28a745; height: 20px; border-radius: 10px;"></div>
+        </div>
+    </div>
+        
         <nav>
             <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
             <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
@@ -658,13 +666,6 @@ setInterval(updateESPStatus, 5000);
     <footer>
         &copy; 2024 Leo Fleischmann
     </footer>
-
-    <div id="progress-container" style="display: none; text-align: center; margin-top: 20px;">
-        <p id="progress-text">Fortschritt: 0%</p>
-        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
-            <div id="progress-bar" style="width: 0%; background-color: #28a745; height: 20px; border-radius: 10px;"></div>
-        </div>
-    </div>
 
 
     <div id="snackbar" class="snackbar"></div>
