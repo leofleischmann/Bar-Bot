@@ -226,18 +226,55 @@ def run_recipe():
     thread.start()
     return jsonify({"status": "success", "message": f"Rezept '{recipe_file}' gestartet."})
 
-def activate_pump(pump_number, duration):
-    """Aktiviert eine Pumpe für die angegebene Dauer."""
-    print(f"Aktiviere Pumpe {pump_number} für {duration} ms...")
+def activate_pump_thread(pump_number, duration):
+    """Führt die Pumpenaktivierung in einem separaten Thread aus."""
     try:
+        print(f"Aktiviere Pumpe {pump_number} für {duration} ms...")
         response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": duration})
         if response.status_code == 200:
-            print(f"Pumpe {pump_number} erfolgreich aktiviert für {duration} ms.")
+            result = response.json()
+            if result.get("status") == "success":
+                print(f"Pumpe {pump_number} erfolgreich aktiviert.")
+            else:
+                print(f"Fehler beim Aktivieren der Pumpe {pump_number}: {result.get('message', 'Unbekannter Fehler')}")
         else:
-            print(f"Fehler beim Aktivieren der Pumpe {pump_number}: {response.status_code}")
-    except requests.exceptions.RequestException as e:
-        print(f"Fehler bei der Pumpenkommunikation: {e}")
+            print(f"Fehler: ESP-Server antwortet mit {response.status_code}")
+    except requests.ConnectionError:
+        print(f"Fehler: Keine Verbindung zum ESP für Pumpe {pump_number}.")
+    except requests.Timeout:
+        print(f"Fehler: Zeitüberschreitung bei der Verbindung zur Pumpe {pump_number}.")
+    except requests.RequestException as e:
+        print(f"Fehler bei der Pumpenkommunikation für Pumpe {pump_number}: {e}")
+        
+def handle_pump_activation(target, cl, config, pump_flow_rate):
+    """Aktiviert relevante Pumpen für ein Ziel und eine Menge."""
+    active_pumps = []
+    for i in range(1, 5):  # pump1 bis pump4
+        if config.get(f"pump{i}") == target:
+            duration = calculate_pump_duration(cl, pump_flow_rate)
+            active_pumps.append((i, duration))
 
+    if active_pumps:
+        for pump_number, duration in active_pumps:
+            activate_pump(pump_number, duration)
+        return True  # Indikator, dass Pumpen genutzt wurden
+    return False
+
+
+
+def activate_pump(pump_number, duration):
+    """Startet die Pumpenaktivierung in einem neuen Thread."""
+    thread = Thread(target=activate_pump_thread, args=(pump_number, duration))
+    thread.start()
+    
+def calculate_pump_duration(cl, pump_flow_rate):
+    """
+    Berechnet die Dauer, die eine Pumpe für eine bestimmte Menge benötigt.
+    :param cl: Menge in cl.
+    :param pump_flow_rate: Flussrate der Pumpe in cl/ms.
+    :return: Dauer in ms.
+    """
+    return int(cl / pump_flow_rate)
 
 @app.route("/get_recipe_content", methods=["GET"])
 def get_recipe_content():
@@ -257,8 +294,6 @@ def get_recipe_content():
         return content
     except Exception as e:
         return f"Fehler beim Lesen der Datei: {str(e)}", 500
-
-
 
 @app.route("/send_command", methods=["POST"])
 def send_command():
@@ -321,20 +356,32 @@ def generate_recipe():
             if amount_cl <= 0:
                 return jsonify({"status": "error", "message": "Menge muss größer als 0 sein."}), 400
 
-            # Wir prüfen hier nicht mehr, ob das Getränk in config ist, da dies in execute_recipe behandelt wird
-            commands.append(f"move {alcohol}")
+            # Validierung des move-Befehls
+            move_command = f"move {alcohol}"
+            is_valid, error = validate_recipe_command(move_command, config)
+            if not is_valid:
+                return jsonify({"status": "error", "message": error}), 400
+            commands.append(move_command)
             commands.append("wait 500")  # Wartezeit, um sicherzustellen, dass die Plattform still steht
 
             # Servo-Befehle hinzufügen
             remaining_cl = amount_cl
             while remaining_cl > 2:
-                commands.append("servo cl 2")
+                servo_command = "servo cl 2"
+                is_valid, error = validate_recipe_command(servo_command, config)
+                if not is_valid:
+                    return jsonify({"status": "error", "message": error}), 400
+                commands.append(servo_command)
                 commands.append("wait 5000")  # Wartezeit, um die Plattform aufzufüllen
                 remaining_cl -= 2
 
             # Letzter Servo-Befehl für Restmenge
             if remaining_cl > 0:
-                commands.append(f"servo cl {remaining_cl}")
+                servo_command = f"servo cl {remaining_cl}"
+                is_valid, error = validate_recipe_command(servo_command, config)
+                if not is_valid:
+                    return jsonify({"status": "error", "message": error}), 400
+                commands.append(servo_command)
                 commands.append("wait 1000")  # Wartezeit zum Abtropfen
 
         # Abschluss des Rezepts
@@ -371,15 +418,63 @@ def get_position(drink, config):
     print(f"Fehler: '{drink}' ist nicht in der Konfiguration vorhanden.")
     return None
 
+def validate_recipe_command(command, config):
+    """
+    Validiert einen einzelnen Rezeptbefehl.
+    :param command: Der Rezeptbefehl als String.
+    :param config: Die aktuelle Konfiguration als Dictionary.
+    :return: Tuple (is_valid, error_message)
+    """
+    command = command.strip()
+    if not command:
+        return False, "Leerer Befehl."
+
+    parts = command.split()
+    if parts[0] == "move":
+        if len(parts) != 2:
+            return False, f"Ungültiger move-Befehl: {command}"
+        target = parts[1]
+        if not target.isdigit() and target not in config:
+            return False, f"'{target}' ist nicht in der Konfiguration vorhanden."
+    elif parts[0] == "servo":
+        if len(parts) < 3:
+            return False, f"Ungültiger servo-Befehl: {command}"
+        mode, value = parts[1], parts[2]
+        if mode == "ms" and not value.isdigit():
+            return False, f"Ungültiger servo ms-Wert: {command}"
+        elif mode == "cl":
+            try:
+                float(value)
+                if "pour_time" not in config:
+                    return False, "Kein 'pour_time' in der Konfiguration für 'servo cl'."
+            except ValueError:
+                return False, f"Ungültiger servo cl-Wert: {command}"
+        else:
+            return False, f"Unbekannter servo Modus: {mode}"
+    elif parts[0] == "wait":
+        if len(parts) != 2 or not parts[1].isdigit():
+            return False, f"Ungültiger wait-Befehl: {command}"
+    elif parts[0] == "done":
+        if len(parts) != 1:
+            return False, f"Ungültiger done-Befehl: {command}"
+    elif parts[0] == "start":
+        if len(parts) != 1:
+            return False, f"Ungültiger start-Befehl: {command}"
+    else:
+        return False, f"Unbekannter Befehl: {command}"
+
+    return True, None
 def execute_recipe(recipe_file):
+    """Führt ein Rezept aus, einschließlich optimierter Pumpenlogik und Unterstützung für parallele Pumpenaktivierung."""
     global active_recipe, is_running, current_progress
     active_recipe = recipe_file
     is_running = True
     current_progress = 0
 
     config = load_config()
-    pour_time = config.get("pour_time", 1000)  # Standardzeit für 2 cl in ms
+    pour_time = config.get("pour_time", 2000)  # Standardzeit für 2 cl in ms
     pump_time = config.get("pump_time", 1000)  # Zeit, die eine Pumpe für 1 cl benötigt
+    pump_flow_rate = 1 / pump_time  # Standardflussrate (cl/ms)
 
     try:
         with open(os.path.join(RECIPE_FOLDER, recipe_file), "r") as file:
@@ -388,6 +483,12 @@ def execute_recipe(recipe_file):
             for idx, line in enumerate(commands):
                 command = line.strip()
                 if not command:
+                    continue
+
+                # Validierung des Befehls
+                is_valid, error = validate_recipe_command(command, config)
+                if not is_valid:
+                    print(f"Fehler im Rezept: {error}")
                     continue
 
                 # Update Fortschritt
@@ -415,22 +516,14 @@ def execute_recipe(recipe_file):
                     if mode == "cl":
                         cl = float(value)
 
-                        # Prüfen, ob das Getränk aus einer Pumpe kommt
-                        pump_number = None
-                        for i in range(1, 5):  # pump1 bis pump4
-                            if config.get(f"pump{i}") == target:  # `target` ist das Getränk
-                                pump_number = i
-                                break
+                        # Pumpenlogik
+                        if handle_pump_activation(args[1], cl, config, pump_flow_rate):
+                            continue  # Falls Pumpen aktiv waren, Servo-Befehl überspringen
 
-                        if pump_number:
-                            # Berechnung der Pumpenaktivierungszeit
-                            duration = int(cl * pump_time)  # Zeit in ms
-                            activate_pump(pump_number, duration)
-                        else:
-                            # Normale Servo-Aktivierung für andere Getränke
-                            delay = int((cl / 2.0) * pour_time)
-                            print(f"Bewege Servo mit Verzögerung von {delay} ms...")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
+                        # Servo-Aktivierung
+                        delay = int((cl / 2.0) * pour_time)
+                        print(f"Bewege Servo mit Verzögerung von {delay} ms...")
+                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
                     elif mode == "ms":
                         delay = int(value)
                         print(f"Bewege Servo mit Verzögerung von {delay} ms...")
@@ -456,7 +549,6 @@ def execute_recipe(recipe_file):
 
     is_running = False
     active_recipe = None
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
