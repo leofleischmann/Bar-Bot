@@ -14,10 +14,10 @@
 #define SLEEP_PIN 4
 #define SERVO_PIN 25 // Servo-Pin
 
-#define PUMP1_PIN 33
-#define PUMP2_PIN 32
-#define PUMP3_PIN 35
-#define PUMP4_PIN 34
+#define PUMP1_PIN 21
+#define PUMP2_PIN 19
+#define PUMP3_PIN 18
+#define PUMP4_PIN 5
 
 // Struct für Pumpen
 struct Pump {
@@ -317,9 +317,13 @@ void activatePump(int pumpNumber, int duration) {
 
     digitalWrite(pump.pin, HIGH);  // Pumpe einschalten
     Serial.printf("Pumpe %d aktiviert für %d ms.\n", pumpNumber, duration);
+
+    // Automatisches Ausschalten nach Ablauf der Zeit
+    delay(duration);
+    digitalWrite(pump.pin, LOW);  // Pumpe ausschalten
+    pump.active = false;
+    Serial.printf("Pumpe %d wurde automatisch deaktiviert.\n", pumpNumber);
 }
-
-
 
 void handlePump() {
     if (!server.hasArg("plain")) {
@@ -347,7 +351,6 @@ void handlePump() {
 
     server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Pumpe aktiviert\"}");
 }
-
 
 
 void handleStatus() {
