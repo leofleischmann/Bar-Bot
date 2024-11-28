@@ -467,20 +467,20 @@ def validate_recipe_command(command, config):
         return False, f"Unbekannter Befehl: {command}"
 
     return True, None
-
 def execute_recipe(recipe_file):
-    """Führt ein Rezept aus, einschließlich optimierter Bewegungs- und Pumpenlogik."""
+    """Führt ein Rezept aus, mit Aggregation von Pumpenläufen und korrekter Wartezeit."""
     global active_recipe, is_running, current_progress
     active_recipe = recipe_file
     is_running = True
     current_progress = 0
 
     config = load_config()
-    pump_time = config.get("pump_time", 1000)  # Zeit pro cl in ms für Pumpen
+    pump_time = config.get("pump_time", 1000)  # Zeit pro 1 cl in ms für Pumpen
     pour_time = config.get("pour_time", 2000)  # Zeit pro 2 cl für den Servo
-    pump_position = config.get("pumpen", 250)  # Position aller Pumpen
-    current_pump = None  # Aktuelle Pumpe, für Aggregation
-    aggregated_cl = 0  # Aggregierte Menge für die aktuelle Pumpe
+    pump_position = config.get("pumpen", 250)  # Position der Pumpen
+    current_target = None  # Aktuelles Ziel
+    aggregated_pump_duration = 0  # Aggregierte Pumpenlaufzeit
+    pump_in_progress = False  # Indikator für laufende Pumpe
 
     try:
         with open(os.path.join(RECIPE_FOLDER, recipe_file), "r") as file:
@@ -502,78 +502,80 @@ def execute_recipe(recipe_file):
                 elif command.startswith("move"):
                     target = command.split()[1]
 
-                    # Vorherige Pumpenoperation abschließen, falls vorhanden
-                    if current_pump and aggregated_cl > 0:
-                        duration = int(aggregated_cl * pump_time)
-                        print(f"Aktiviere Pumpe {current_pump} für {duration} ms...")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": current_pump, "duration": duration})
-                        current_pump = None
-                        aggregated_cl = 0
+                    # Beende laufende Pumpenoperationen
+                    if pump_in_progress:
+                        print(f"Aktiviere Pumpe {current_target} für {aggregated_pump_duration} ms.")
+                        requests.post(
+                            f"http://{ESP_IP}:{ESP_PORT}/pump",
+                            json={"pump": current_target, "duration": aggregated_pump_duration}
+                        )
+                        time.sleep(aggregated_pump_duration / 1000.0)
+                        print("Warte 1000 ms nach Pumpenlauf zum Abtropfen.")
+                        time.sleep(1)
+                        aggregated_pump_duration = 0
+                        pump_in_progress = False
 
-                    # Bestimme Position für das Ziel
-                    if target in config:
+                    # Zielposition bestimmen
+                    if target.isdigit():
+                        position = int(target)  # Direkte Position in mm
+                        current_target = None
+                    elif target in config:
                         position = config[target]
+                        current_target = target
                     elif any(config.get(f"pump{i}") == target for i in range(1, 5)):
                         position = pump_position
+                        current_target = target
                     else:
-                        position = None
-
-                    if position is not None:
-                        print(f"Bewege Plattform zu {position} mm für '{target}'...")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
-                    else:
-                        print(f"Ungültiger move-Befehl: {command}")
+                        print(f"Fehler: Ziel '{target}' ist nicht in der Konfiguration vorhanden.")
                         continue
 
+                    print(f"Bewege Plattform zu {position} mm für '{target}'...")
+                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
+
                 elif command.startswith("servo"):
+                    if not current_target:
+                        print("Fehler: Kein gültiges Ziel für 'servo' vorhanden.")
+                        continue
+
                     mode, value = command.split()[1], command.split()[2]
                     if mode == "cl":
                         cl = float(value)
 
-                        # Prüfen, ob das Ziel mit einer Pumpe verbunden ist
-                        target = commands[idx - 2].split()[1]  # Ziel aus vorherigem `move`-Befehl
+                        # Prüfen, ob das aktuelle Ziel eine Pumpe ist
                         pump_number = next(
-                            (i for i in range(1, 5) if config.get(f"pump{i}") == target),
+                            (i for i in range(1, 5) if config.get(f"pump{i}") == current_target),
                             None
                         )
 
                         if pump_number:
-                            # Aggregiere Pumpenbefehle
-                            if current_pump == pump_number:
-                                aggregated_cl += cl
-                            else:
-                                # Vorherige Pumpe abschließen
-                                if current_pump and aggregated_cl > 0:
-                                    duration = int(aggregated_cl * pump_time)
-                                    print(f"Aktiviere Pumpe {current_pump} für {duration} ms...")
-                                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": current_pump, "duration": duration})
-
-                                # Neue Pumpe setzen
-                                current_pump = pump_number
-                                aggregated_cl = cl
+                            aggregated_pump_duration += int(cl * pump_time)
+                            pump_in_progress = True
                         else:
-                            # Servo aktivieren, wenn keine Pumpe vorhanden
                             delay = int((cl / 2) * pour_time)
                             print(f"Bewege Servo für {cl} cl mit Verzögerung {delay} ms...")
                             requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
 
                 elif command.startswith("wait"):
-                    # Wartezeit überspringen, falls Pumpen aggregiert werden
-                    if current_pump and aggregated_cl > 0:
-                        continue
-
                     duration = int(command.split()[1])
-                    print(f"Warte {duration} ms...")
-                    time.sleep(duration / 1000.0)
+
+                    # Warten nur, wenn keine Pumpe aggregiert wird
+                    if not pump_in_progress:
+                        print(f"Warte {duration} ms...")
+                        time.sleep(duration / 1000.0)
 
                 elif command.startswith("done"):
-                    # Abschließen aller offenen Pumpenaufträge
-                    if current_pump and aggregated_cl > 0:
-                        duration = int(aggregated_cl * pump_time)
-                        print(f"Aktiviere Pumpe {current_pump} für {duration} ms...")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": current_pump, "duration": duration})
-                        current_pump = None
-                        aggregated_cl = 0
+                    # Beende laufende Pumpenoperationen
+                    if pump_in_progress:
+                        print(f"Aktiviere Pumpe {current_target} für {aggregated_pump_duration} ms.")
+                        requests.post(
+                            f"http://{ESP_IP}:{ESP_PORT}/pump",
+                            json={"pump": current_target, "duration": aggregated_pump_duration}
+                        )
+                        time.sleep(aggregated_pump_duration / 1000.0)
+                        print("Warte 1000 ms nach Pumpenlauf zum Abtropfen.")
+                        time.sleep(1)
+                        aggregated_pump_duration = 0
+                        pump_in_progress = False
 
                     print(f"Rezept '{recipe_file}' abgeschlossen.")
                     break
@@ -585,6 +587,7 @@ def execute_recipe(recipe_file):
 
     is_running = False
     active_recipe = None
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
