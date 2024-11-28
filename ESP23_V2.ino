@@ -14,6 +14,27 @@
 #define SLEEP_PIN 4
 #define SERVO_PIN 25 // Servo-Pin
 
+#define PUMP1_PIN 33
+#define PUMP2_PIN 32
+#define PUMP3_PIN 35
+#define PUMP4_PIN 34
+
+// Struct für Pumpen
+struct Pump {
+    uint8_t pin;
+    bool active;
+    unsigned long start;
+    unsigned long duration;
+};
+
+// Pumpen-Array initialisieren
+Pump pumps[4] = {
+    {PUMP1_PIN, false, 0, 0},
+    {PUMP2_PIN, false, 0, 0},
+    {PUMP3_PIN, false, 0, 0},
+    {PUMP4_PIN, false, 0, 0}
+};
+
 // Stepper Motor
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 
@@ -29,7 +50,7 @@ const char* password = "password";
 IPAddress local_IP(192, 168, 2, 236);   // Feste IP-Adresse des ESP32
 IPAddress gateway(192, 168, 2, 1);      // Gateway (Router-Adresse)
 IPAddress subnet(255, 255, 255, 0);     // Subnetzmaske
-IPAddress dns(192, 168, 2, 40);          // DNS-Server
+IPAddress dns(192, 168, 2, 40);         // DNS-Server
 
 // Raspberry Pi Server
 const char* raspi_ip = "192.168.2.40"; // IP-Adresse des Raspberry Pi
@@ -49,58 +70,79 @@ long maxSteps = 0;         // Maximale Schritte zwischen Endschaltern
 long currentPosition = 0;  // Aktuelle Position des Motors in Schritten
 
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  Serial.println("\n===== ESP32 Initialisierung =====");
+    Serial.println("\n===== ESP32 Initialisierung =====");
 
-  // Pin-Konfiguration
-  Serial.println("Pins konfigurieren...");
-  pinMode(LIMIT_SWITCH1_PIN, INPUT);
-  pinMode(LIMIT_SWITCH2_PIN, INPUT);
-  pinMode(SLEEP_PIN, OUTPUT);
-  digitalWrite(SLEEP_PIN, LOW); // Treiber deaktivieren
-  Serial.println("Pins konfiguriert.");
+    // Pin-Konfiguration
+    Serial.println("Pins konfigurieren...");
+    pinMode(LIMIT_SWITCH1_PIN, INPUT);
+    pinMode(LIMIT_SWITCH2_PIN, INPUT);
+    pinMode(SLEEP_PIN, OUTPUT);
+    digitalWrite(SLEEP_PIN, LOW);  // Treiber deaktivieren
 
-  // Stepper initialisieren
-  Serial.println("Stepper-Motor initialisieren...");
-  stepper.setMaxSpeed(moveMaxSpeed);
-  stepper.setAcceleration(moveAcceleration);
-  Serial.println("Stepper-Motor initialisiert.");
+    // Pumpen-Pins initialisieren
+    for (int i = 0; i < 4; i++) {
+        pinMode(pumps[i].pin, OUTPUT);
+        digitalWrite(pumps[i].pin, LOW);  // Pumpen deaktivieren
+        pumps[i].active = false;         // Pumpenstatus zurücksetzen
+    }
 
-  // Servo initialisieren
-  Serial.println("Servo initialisieren...");
-  myServo.attach(SERVO_PIN);
-  myServo.write(90); // Neutralposition
-  Serial.println("Servo auf 90 Grad gesetzt.");
+    Serial.println("Pins konfiguriert.");
 
-  // WLAN verbinden
-  connectToWiFi();
+    // Stepper initialisieren
+    Serial.println("Stepper-Motor initialisieren...");
+    stepper.setMaxSpeed(moveMaxSpeed);
+    stepper.setAcceleration(moveAcceleration);
+    Serial.println("Stepper-Motor initialisiert.");
 
-  // OTA einrichten
-  setupOTA();
+    // Servo initialisieren
+    Serial.println("Servo initialisieren...");
+    myServo.attach(SERVO_PIN);
+    myServo.write(90);  // Neutralposition
+    Serial.println("Servo auf 90 Grad gesetzt.");
 
-  // Webserver-Routen definieren
-  Serial.println("Webserver-Routen definieren...");
-  server.on("/move", HTTP_POST, handleMove);
-  server.on("/servo", HTTP_POST, handleServo);
-  server.on("/status", HTTP_GET, handleStatus);
-  server.begin();
-  Serial.println("Webserver gestartet.");
+    // WLAN verbinden
+    connectToWiFi();
 
-  // Kalibrierung starten
-  Serial.println("Starte Kalibrierung der Plattform...");
-  calibratePlatform();
+    // OTA einrichten
+    setupOTA();
 
-  // Bewege zur Mitte (600 mm)
-  Serial.println("Bewege Plattform zur Mitte (600 mm)...");
-  moveToMM(maxMillimeters / 2);
-  Serial.println("Setup abgeschlossen.");
+    // Webserver-Routen definieren
+    Serial.println("Webserver-Routen definieren...");
+    server.on("/move", HTTP_POST, handleMove);
+    server.on("/servo", HTTP_POST, handleServo);
+    server.on("/status", HTTP_GET, handleStatus);
+    server.on("/pump", HTTP_POST, handlePump);
+    server.begin();
+    Serial.println("Webserver gestartet.");
+
+    // Kalibrierung starten
+    Serial.println("Starte Kalibrierung der Plattform...");
+    calibratePlatform();
+
+    // Bewege zur Mitte (600 mm)
+    Serial.println("Bewege Plattform zur Mitte (600 mm)...");
+    moveToMM(maxMillimeters / 2);
+    Serial.println("Setup abgeschlossen.");
 }
+
 
 void loop() {
-  server.handleClient();
-  ArduinoOTA.handle();
+    server.handleClient();
+    ArduinoOTA.handle();
+
+    // Überprüfe den Status aller aktiven Pumpen
+    unsigned long currentMillis = millis();
+    for (int i = 0; i < 4; i++) {
+        if (pumps[i].active && (currentMillis - pumps[i].start >= pumps[i].duration)) {
+            pumps[i].active = false;
+            digitalWrite(pumps[i].pin, LOW);  // Schalte die Pumpe aus
+            Serial.printf("Pumpe %d deaktiviert.\n", i + 1);
+        }
+    }
 }
+
 
 // WLAN-Verbindung herstellen
 void connectToWiFi() {
@@ -248,16 +290,79 @@ void handleServo() {
   }
 
   servoDelay = delayTime;
-  Serial.printf("Webserver: Servo bewegen (40 Grad), warte %d ms, zurück zu 90 Grad.\n", servoDelay);
+  Serial.printf("Webserver: Servo bewegen (140 Grad), warte %d ms, zurück zu 90 Grad.\n", servoDelay);
 
-  myServo.write(40);
+  myServo.write(140);
   delay(servoDelay);
   myServo.write(90);
 
   server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Servo-Bewegung abgeschlossen\"}");
 }
 
-// Webserver-Route: Status überprüfen
+void activatePump(int pumpNumber, int duration) {
+    if (pumpNumber < 1 || pumpNumber > 4) {
+        Serial.printf("Ungültige Pumpennummer: %d\n", pumpNumber);
+        return;
+    }
+
+    Pump &pump = pumps[pumpNumber - 1];
+    if (pump.active) {
+        Serial.printf("Pumpe %d ist bereits aktiv. Ignoriere Aktivierung.\n", pumpNumber);
+        return;
+    }
+
+    pump.active = true;
+    pump.start = millis();
+    pump.duration = duration;
+
+    digitalWrite(pump.pin, HIGH);  // Pumpe einschalten
+    Serial.printf("Pumpe %d aktiviert für %d ms.\n", pumpNumber, duration);
+}
+
+
+
+void handlePump() {
+    if (!server.hasArg("plain")) {
+        server.send(400, "application/json", "{\"status\":\"error\",\"message\":\"Keine Daten gesendet\"}");
+        return;
+    }
+
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, server.arg("plain"));
+    if (error) {
+        server.send(400, "application/json", "{\"status\":\"error\",\"message\":\"Ungültiges JSON\"}");
+        return;
+    }
+
+    int pumpNumber = doc["pump"];
+    int duration = doc["duration"];
+
+    if (pumpNumber < 1 || pumpNumber > 4 || duration <= 0) {
+        Serial.printf("Fehler: Ungültige Eingaben - Pumpennummer: %d, Dauer: %d\n", pumpNumber, duration);
+        server.send(400, "application/json", "{\"status\":\"error\",\"message\":\"Ungültige Pumpennummer oder Dauer\"}");
+        return;
+    }
+
+    activatePump(pumpNumber, duration);
+
+    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Pumpe aktiviert\"}");
+}
+
+
+
 void handleStatus() {
-    server.send(200, "application/json", "{\"status\":\"online\",\"message\":\"ESP verbunden\"}");
+    StaticJsonDocument<256> doc;
+    doc["status"] = "online";
+
+    JsonArray pumpStatuses = doc.createNestedArray("pumps");
+    for (int i = 0; i < 4; i++) {
+        JsonObject pump = pumpStatuses.createNestedObject();
+        pump["pumpNumber"] = i + 1;
+        pump["active"] = pumps[i].active;
+        pump["remainingTime"] = pumps[i].active ? (pumps[i].duration - (millis() - pumps[i].start)) : 0;
+    }
+
+    String response;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
