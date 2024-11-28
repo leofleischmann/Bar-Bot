@@ -226,6 +226,17 @@ def run_recipe():
     thread.start()
     return jsonify({"status": "success", "message": f"Rezept '{recipe_file}' gestartet."})
 
+def activate_pump(pump_number, duration):
+    """Aktiviert eine Pumpe für die angegebene Dauer."""
+    print(f"Aktiviere Pumpe {pump_number} für {duration} ms...")
+    try:
+        response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": duration})
+        if response.status_code == 200:
+            print(f"Pumpe {pump_number} erfolgreich aktiviert für {duration} ms.")
+        else:
+            print(f"Fehler beim Aktivieren der Pumpe {pump_number}: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Fehler bei der Pumpenkommunikation: {e}")
 
 
 @app.route("/get_recipe_content", methods=["GET"])
@@ -300,23 +311,17 @@ def generate_recipe():
         config = load_config()
         pour_time = config.get("pour_time", 2000)  # Standard-Pour-Time in ms für 2 cl
 
-        # Getränke aus Pumpen hinzufügen
-        for i in range(1, 5):  # pump1 bis pump4
-            pump_drink = config.get(f"pump{i}")
-            if pump_drink:
-                config[pump_drink] = config.get("pumpen", 250)
-
         # Rezept generieren
         commands = ["start"]
         for item in alcohol_data:
             alcohol = item.get("alcohol")
             amount_cl = float(item.get("amount", 0))
-            if alcohol not in config:
-                return jsonify({"status": "error", "message": f"'{alcohol}' ist nicht in der Konfiguration vorhanden."}), 400
+            if not alcohol:
+                return jsonify({"status": "error", "message": "Getränkename fehlt."}), 400
             if amount_cl <= 0:
                 return jsonify({"status": "error", "message": "Menge muss größer als 0 sein."}), 400
 
-            # Füge den move-Befehl mit dem Getränkenamen hinzu
+            # Wir prüfen hier nicht mehr, ob das Getränk in config ist, da dies in execute_recipe behandelt wird
             commands.append(f"move {alcohol}")
             commands.append("wait 500")  # Wartezeit, um sicherzustellen, dass die Plattform still steht
 
@@ -350,6 +355,22 @@ def recipe_progress():
     global current_progress
     return jsonify({"progress": current_progress})
 
+def get_position(drink, config):
+    """Ermittelt die Position eines Getränks oder Pumpengetränks."""
+    # Prüfen, ob das Getränk ein normales Getränk ist
+    if drink in config and not drink.startswith("pump"):
+        return config[drink]
+
+    # Prüfen, ob das Getränk in einer Pumpe konfiguriert ist
+    for i in range(1, 5):  # pump1 bis pump4
+        pump_key = f"pump{i}"
+        if config.get(pump_key) == drink:
+            return config.get("pumpen", None)  # Rückgabe der Pumpenposition
+
+    # Wenn das Getränk nicht gefunden wurde
+    print(f"Fehler: '{drink}' ist nicht in der Konfiguration vorhanden.")
+    return None
+
 def execute_recipe(recipe_file):
     global active_recipe, is_running, current_progress
     active_recipe = recipe_file
@@ -357,7 +378,8 @@ def execute_recipe(recipe_file):
     current_progress = 0
 
     config = load_config()
-    pour_time = config.get("pour_time", 1000)
+    pour_time = config.get("pour_time", 1000)  # Standardzeit für 2 cl in ms
+    pump_time = config.get("pump_time", 1000)  # Zeit, die eine Pumpe für 1 cl benötigt
 
     try:
         with open(os.path.join(RECIPE_FOLDER, recipe_file), "r") as file:
@@ -378,30 +400,44 @@ def execute_recipe(recipe_file):
                 elif command.startswith("move"):
                     args = command.split()
                     target = args[1]
-                    if target.isdigit():
-                        position = int(target)
-                    elif target in config:
-                        position = config[target]
+                    position = get_position(target, config)
+                    if position is not None:
+                        print(f"Bewege Plattform zu {position} mm für '{target}'...")
+                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
                     else:
                         print(f"Ungültiger move-Befehl: {command}")
                         continue
-                    print(f"Bewege Plattform zu {position} mm...")
-                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
 
                 elif command.startswith("servo"):
                     args = command.split()
                     mode = args[1]
                     value = args[2]
-                    if mode == "ms":
-                        delay = int(value)
-                    elif mode == "cl":
+                    if mode == "cl":
                         cl = float(value)
-                        delay = int((cl / 2.0) * pour_time)
+
+                        # Prüfen, ob das Getränk aus einer Pumpe kommt
+                        pump_number = None
+                        for i in range(1, 5):  # pump1 bis pump4
+                            if config.get(f"pump{i}") == target:  # `target` ist das Getränk
+                                pump_number = i
+                                break
+
+                        if pump_number:
+                            # Berechnung der Pumpenaktivierungszeit
+                            duration = int(cl * pump_time)  # Zeit in ms
+                            activate_pump(pump_number, duration)
+                        else:
+                            # Normale Servo-Aktivierung für andere Getränke
+                            delay = int((cl / 2.0) * pour_time)
+                            print(f"Bewege Servo mit Verzögerung von {delay} ms...")
+                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
+                    elif mode == "ms":
+                        delay = int(value)
+                        print(f"Bewege Servo mit Verzögerung von {delay} ms...")
+                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
                     else:
                         print(f"Unbekannter servo Modus: {mode}")
                         continue
-                    print(f"Bewege Servo mit Verzögerung von {delay} ms...")
-                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
 
                 elif command.startswith("wait"):
                     duration = int(command.split()[1])
@@ -412,12 +448,15 @@ def execute_recipe(recipe_file):
                     print(f"Rezept '{recipe_file}' abgeschlossen.")
                     break
 
+        # Setze Fortschritt auf 100%, wenn das Rezept abgeschlossen ist
+        current_progress = 100
+
     except Exception as e:
         print(f"Fehler beim Ausführen des Rezepts: {e}")
 
     is_running = False
     active_recipe = None
-    current_progress = 100
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
