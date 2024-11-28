@@ -66,6 +66,12 @@ def index():
     recipes = []
     config = load_config()
 
+    # Getränke aus Pumpen hinzufügen
+    for i in range(1, 5):  # pump1 bis pump4
+        pump_drink = config.get(f"pump{i}")
+        if pump_drink:
+            config[pump_drink] = config.get("pumpen", 250)
+
     for filename in os.listdir(RECIPE_FOLDER):
         if filename.endswith(".txt"):
             recipe_path = os.path.join(RECIPE_FOLDER, filename)
