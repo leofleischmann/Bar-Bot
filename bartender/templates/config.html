@@ -104,15 +104,15 @@
         font-size: 14px;
         text-align: right;
     }
-    .config-drag {
-        cursor: grab;
-        color: #666;
-        font-size: 18px;
-        margin-right: 15px; /* Standardabstand */
-    }
-    .config-drag:active {
-        cursor: grabbing;
-    }
+.config-drag {
+  cursor: grab;
+  color: #666;
+  font-size: 18px;
+  user-select: none;
+}
+.config-drag:active {
+  cursor: grabbing;
+}
     .config-item button {
         background-color: #dc3545;
         color: white;
@@ -292,10 +292,6 @@ function addDrinkConfigRow() {
     enableDragAndDrop();
 }
 
-
-
-
-
 function removeConfigRow(button) {
     const row = button.closest(".config-item");
     row.remove();
@@ -310,22 +306,44 @@ function addPumpConfigRow() {
         <input type="text" class="config-name" placeholder="Getränk" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
         <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
     `;
-    container.appendChild(newItem);
+    container.a
+        ppendChild(newItem);
 }
 
+function renderPumpConfig(config) {
+    const pumpContainer = document.getElementById("pump-config-list");
+    pumpContainer.innerHTML = ""; // Bestehende Pumpen löschen
+
+    for (let i = 1; i <= 4; i++) {
+        const pumpDrink = config[`pump${i}`] || "";
+        const pumpRow = document.createElement("div");
+        pumpRow.className = "config-item";
+        pumpRow.innerHTML = `
+            <span>Pumpe ${i}:</span>
+            <input type="text" class="config-name" value="${pumpDrink}" placeholder="Getränk" disabled>
+        `;
+        pumpContainer.appendChild(pumpRow);
+    }
+}
+        
+        
 function enableDragAndDrop() {
-    const items = document.querySelectorAll(".config-item"); // Alle Konfigurationszeilen
-    const lists = document.querySelectorAll(".config-list"); // Beide Listen (Drinks und Pumps)
+    const list = document.querySelector(".config-list");
 
+    list.removeEventListener("dragover", handleDragOver);
+    list.addEventListener("dragover", handleDragOver);
+
+    const items = document.querySelectorAll(".config-item");
     items.forEach(item => {
-        item.setAttribute("draggable", "true"); // Stelle sicher, dass alle Items draggable sind
-        item.addEventListener("dragstart", handleDragStart);
-        item.addEventListener("dragend", handleDragEnd);
-    });
+        const dragHandle = item.querySelector(".config-drag");
+        if (!dragHandle) return;
 
-    lists.forEach(list => {
-        list.addEventListener("dragover", handleDragOver);
-        list.addEventListener("drop", handleDrop);
+        dragHandle.addEventListener("dragstart", handleDragStart);
+        dragHandle.addEventListener("dragend", handleDragEnd);
+
+        // Sicherstellen, dass die gesamte Zeile nicht draggable ist
+        item.draggable = false;
+        dragHandle.draggable = true; // Nur das Symbol ist draggable
     });
 }
 
@@ -433,19 +451,14 @@ function getDragAfterElement(container, y) {
                 <input type="number" id="pump-position" value="{{ config.pumpen }}" placeholder="Position in mm">
             </div>
 
-            <!-- Liste der Pumpen (nur Getränke-Namen) -->
+            <!-- Liste der Pumpen (durchnummeriert und nicht dragbar) -->
             <div class="config-list" id="pump-config-list">
                 {% for i in range(1, 5) %}
                 <div class="config-item">
-                    <input type="text" class="config-name" value="{{ config['pump' ~ i] }}" placeholder="Getränk" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
-                    <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
+                    <span>Pumpe {{ i }}:</span>
+                    <input type="text" class="config-name" value="{{ config['pump' ~ i] }}" disabled>
                 </div>
                 {% endfor %}
-            </div>
-
-            <!-- Button zum Hinzufügen neuer Pumpen -->
-            <div class="add-config">
-                <button onclick="addPumpConfigRow()">Pumpe hinzufügen</button>
             </div>
         </section>
 
