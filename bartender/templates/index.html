@@ -343,10 +343,33 @@ async function startRecipe(recipeName) {
         }
     }
 
-    async function sendManualCommand() {
-        const commandType = document.getElementById("manualCommandType").value;
-        const value = parseInt(document.getElementById("manualValue").value);
+async function sendManualCommand() {
+    const commandType = document.getElementById("manualCommandType").value;
+    const value = parseInt(document.getElementById("manualValue").value);
 
+    if (commandType === "pump") {
+        const pumpNumber = parseInt(document.getElementById("pumpNumber").value);
+        if (isNaN(value) || isNaN(pumpNumber)) {
+            showSnackbar("Bitte geben Sie eine gültige Pumpennummer und Dauer ein.", "error");
+            return;
+        }
+
+        try {
+            const response = await fetch("/send_command", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ type: commandType, pump: pumpNumber, duration: value })
+            });
+
+            const result = await response.json();
+            showSnackbar(result.message, "success");
+        } catch (error) {
+            console.error("Fehler beim Senden des Befehls:", error);
+            showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
+        }
+    } else {
         if (!commandType || isNaN(value)) {
             showSnackbar("Bitte geben Sie einen gültigen Befehl und Wert ein.", "error");
             return;
@@ -368,6 +391,7 @@ async function startRecipe(recipeName) {
             showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
         }
     }
+}
 
     function toggleManualControl() {
         const form = document.querySelector("form");
@@ -521,6 +545,16 @@ function startProgressTracking() {
     progressInterval = setInterval(fetchProgress, 1000); // Alle 1 Sekunde
 }
 
+function togglePumpOptions() {
+    const commandType = document.getElementById("manualCommandType").value;
+    const pumpOptions = document.getElementById("pumpOptions");
+    if (commandType === "pump") {
+        pumpOptions.style.display = "block";
+    } else {
+        pumpOptions.style.display = "none";
+    }
+}
+
 
     function showSnackbar(message, type = "success") {
         const snackbar = document.getElementById("snackbar");
@@ -641,27 +675,38 @@ setInterval(updateESPStatus, 5000);
         </div>
 
         <!-- Formular für manuelle Steuerung -->
-        <form onsubmit="event.preventDefault(); sendManualCommand();" style="margin-top: 20px; display: none;">
-            <label for="manualCommandType">Befehlstyp:</label>
-            <select id="manualCommandType" name="manualCommandType" required>
-                <option value="move">Plattform bewegen (mm)</option>
-                <option value="servo">Servo bewegen (ms)</option>
-            </select>
-            <label for="manualValue">Wert:</label>
-            <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
-            <button type="submit" style="
-                background-color: #28a745;
-                color: white;
-                border: none;
-                border-radius: 50px;
-                padding: 10px 30px;
-                font-size: 16px;
-                cursor: pointer;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                transition: all 0.3s ease;">
-                Befehl senden
-            </button>
-        </form>
+<form onsubmit="event.preventDefault(); sendManualCommand();" style="margin-top: 20px; display: none;">
+    <label for="manualCommandType">Befehlstyp:</label>
+    <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
+        <option value="move">Plattform bewegen (mm)</option>
+        <option value="servo">Servo bewegen (ms)</option>
+        <option value="pump">Pumpe aktivieren (ms)</option>
+    </select>
+    <div id="pumpOptions" style="display: none;">
+        <label for="pumpNumber">Pumpe:</label>
+        <select id="pumpNumber" name="pumpNumber" required>
+            <option value="1">Pumpe 1</option>
+            <option value="2">Pumpe 2</option>
+            <option value="3">Pumpe 3</option>
+            <option value="4">Pumpe 4</option>
+        </select>
+    </div>
+    <label for="manualValue">Wert:</label>
+    <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
+    <button type="submit" style="
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 10px 30px;
+        font-size: 16px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;">
+        Befehl senden
+    </button>
+</form>
+
     </main>
     <footer>
         &copy; 2024 Leo Fleischmann
