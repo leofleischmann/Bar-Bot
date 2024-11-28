@@ -435,7 +435,10 @@ def validate_recipe_command(command, config):
             return False, f"Ungültiger move-Befehl: {command}"
         target = parts[1]
         if not target.isdigit() and target not in config:
-            return False, f"'{target}' ist nicht in der Konfiguration vorhanden."
+            # Überprüfen, ob das Ziel ein Pumpenzuordnung ist
+            is_pump = any(config.get(f"pump{i}") == target for i in range(1, 5))
+            if not is_pump:
+                return False, f"'{target}' ist nicht in der Konfiguration oder Pumpenzuordnung vorhanden."
     elif parts[0] == "servo":
         if len(parts) < 3:
             return False, f"Ungültiger servo-Befehl: {command}"
@@ -464,34 +467,32 @@ def validate_recipe_command(command, config):
         return False, f"Unbekannter Befehl: {command}"
 
     return True, None
+
 def execute_recipe(recipe_file):
-    """Führt ein Rezept aus, einschließlich optimierter Pumpenlogik und Unterstützung für parallele Pumpenaktivierung."""
+    """Führt ein Rezept aus, einschließlich optimierter Bewegungs- und Pumpenlogik."""
     global active_recipe, is_running, current_progress
     active_recipe = recipe_file
     is_running = True
     current_progress = 0
 
     config = load_config()
-    pour_time = config.get("pour_time", 2000)  # Standardzeit für 2 cl in ms
-    pump_time = config.get("pump_time", 1000)  # Zeit, die eine Pumpe für 1 cl benötigt
-    pump_flow_rate = 1 / pump_time  # Standardflussrate (cl/ms)
+    pump_time = config.get("pump_time", 1000)  # Zeit pro cl in ms für Pumpen
+    pour_time = config.get("pour_time", 2000)  # Zeit pro 2 cl für den Servo
+    pump_position = config.get("pumpen", 250)  # Position aller Pumpen
+    current_pump = None  # Aktuelle Pumpe, für Aggregation
+    aggregated_cl = 0  # Aggregierte Menge für die aktuelle Pumpe
 
     try:
         with open(os.path.join(RECIPE_FOLDER, recipe_file), "r") as file:
             commands = file.readlines()
             total_commands = len(commands)
-            for idx, line in enumerate(commands):
-                command = line.strip()
+
+            for idx, command in enumerate(commands):
+                command = command.strip()
                 if not command:
                     continue
 
-                # Validierung des Befehls
-                is_valid, error = validate_recipe_command(command, config)
-                if not is_valid:
-                    print(f"Fehler im Rezept: {error}")
-                    continue
-
-                # Update Fortschritt
+                # Fortschritt aktualisieren
                 current_progress = int((idx + 1) / total_commands * 100)
 
                 if command.startswith("start"):
@@ -499,9 +500,24 @@ def execute_recipe(recipe_file):
                     continue
 
                 elif command.startswith("move"):
-                    args = command.split()
-                    target = args[1]
-                    position = get_position(target, config)
+                    target = command.split()[1]
+
+                    # Vorherige Pumpenoperation abschließen, falls vorhanden
+                    if current_pump and aggregated_cl > 0:
+                        duration = int(aggregated_cl * pump_time)
+                        print(f"Aktiviere Pumpe {current_pump} für {duration} ms...")
+                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": current_pump, "duration": duration})
+                        current_pump = None
+                        aggregated_cl = 0
+
+                    # Bestimme Position für das Ziel
+                    if target in config:
+                        position = config[target]
+                    elif any(config.get(f"pump{i}") == target for i in range(1, 5)):
+                        position = pump_position
+                    else:
+                        position = None
+
                     if position is not None:
                         print(f"Bewege Plattform zu {position} mm für '{target}'...")
                         requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
@@ -510,39 +526,59 @@ def execute_recipe(recipe_file):
                         continue
 
                 elif command.startswith("servo"):
-                    args = command.split()
-                    mode = args[1]
-                    value = args[2]
+                    mode, value = command.split()[1], command.split()[2]
                     if mode == "cl":
                         cl = float(value)
 
-                        # Pumpenlogik
-                        if handle_pump_activation(args[1], cl, config, pump_flow_rate):
-                            continue  # Falls Pumpen aktiv waren, Servo-Befehl überspringen
+                        # Prüfen, ob das Ziel mit einer Pumpe verbunden ist
+                        target = commands[idx - 2].split()[1]  # Ziel aus vorherigem `move`-Befehl
+                        pump_number = next(
+                            (i for i in range(1, 5) if config.get(f"pump{i}") == target),
+                            None
+                        )
 
-                        # Servo-Aktivierung
-                        delay = int((cl / 2.0) * pour_time)
-                        print(f"Bewege Servo mit Verzögerung von {delay} ms...")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
-                    elif mode == "ms":
-                        delay = int(value)
-                        print(f"Bewege Servo mit Verzögerung von {delay} ms...")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
-                    else:
-                        print(f"Unbekannter servo Modus: {mode}")
-                        continue
+                        if pump_number:
+                            # Aggregiere Pumpenbefehle
+                            if current_pump == pump_number:
+                                aggregated_cl += cl
+                            else:
+                                # Vorherige Pumpe abschließen
+                                if current_pump and aggregated_cl > 0:
+                                    duration = int(aggregated_cl * pump_time)
+                                    print(f"Aktiviere Pumpe {current_pump} für {duration} ms...")
+                                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": current_pump, "duration": duration})
+
+                                # Neue Pumpe setzen
+                                current_pump = pump_number
+                                aggregated_cl = cl
+                        else:
+                            # Servo aktivieren, wenn keine Pumpe vorhanden
+                            delay = int((cl / 2) * pour_time)
+                            print(f"Bewege Servo für {cl} cl mit Verzögerung {delay} ms...")
+                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
 
                 elif command.startswith("wait"):
+                    # Wartezeit überspringen, falls Pumpen aggregiert werden
+                    if current_pump and aggregated_cl > 0:
+                        continue
+
                     duration = int(command.split()[1])
                     print(f"Warte {duration} ms...")
                     time.sleep(duration / 1000.0)
 
                 elif command.startswith("done"):
+                    # Abschließen aller offenen Pumpenaufträge
+                    if current_pump and aggregated_cl > 0:
+                        duration = int(aggregated_cl * pump_time)
+                        print(f"Aktiviere Pumpe {current_pump} für {duration} ms...")
+                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": current_pump, "duration": duration})
+                        current_pump = None
+                        aggregated_cl = 0
+
                     print(f"Rezept '{recipe_file}' abgeschlossen.")
                     break
 
-        # Setze Fortschritt auf 100%, wenn das Rezept abgeschlossen ist
-        current_progress = 100
+        current_progress = 100  # Fortschritt auf 100% setzen
 
     except Exception as e:
         print(f"Fehler beim Ausführen des Rezepts: {e}")
