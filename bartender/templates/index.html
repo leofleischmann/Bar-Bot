@@ -360,13 +360,17 @@ async function sendManualCommand() {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ type: commandType, pump: pumpNumber, duration: value })
+                body: JSON.stringify({ type: commandType, pump: pumpNumber, value: value }) // Korrigierter Schlüssel
             });
 
             const result = await response.json();
-            showSnackbar(result.message, "success");
+            if (response.ok) {
+                showSnackbar(result.message, "success");
+            } else {
+                throw new Error(result.message || "Fehler beim Senden des Befehls.");
+            }
         } catch (error) {
-            console.error("Fehler beim Senden des Befehls:", error);
+            console.error("Fehler beim Senden des Pumpenbefehls:", error);
             showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
         }
     } else {
@@ -385,7 +389,11 @@ async function sendManualCommand() {
             });
 
             const result = await response.json();
-            showSnackbar(result.message, "success");
+            if (response.ok) {
+                showSnackbar(result.message, "success");
+            } else {
+                throw new Error(result.message || "Fehler beim Senden des Befehls.");
+            }
         } catch (error) {
             console.error("Fehler beim Senden des Befehls:", error);
             showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
