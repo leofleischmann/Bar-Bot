@@ -299,7 +299,7 @@ def get_recipe_content():
 def send_command():
     """
     Handles manual and recipe-based commands for move, servo, and pump.
-    Ensures consistent handling of commands before sending to the ESP.
+    Sends the correct API request to the ESP for each command type.
     """
     try:
         # Eingehende JSON-Daten parsen
