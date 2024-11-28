@@ -292,7 +292,13 @@ def generate_recipe():
 
         # Lade die Konfigurationsdaten
         config = load_config()
-        pour_time = config.get("pour_time", 1000)  # Standard-Pour-Time in ms für 2 cl
+        pour_time = config.get("pour_time", 2000)  # Standard-Pour-Time in ms für 2 cl
+
+        # Getränke aus Pumpen hinzufügen
+        for i in range(1, 5):  # pump1 bis pump4
+            pump_drink = config.get(f"pump{i}")
+            if pump_drink:
+                config[pump_drink] = config.get("pumpen", 250)
 
         # Rezept generieren
         commands = ["start"]
@@ -304,7 +310,7 @@ def generate_recipe():
             if amount_cl <= 0:
                 return jsonify({"status": "error", "message": "Menge muss größer als 0 sein."}), 400
 
-            position = config[alcohol]
+            # Füge den move-Befehl mit dem Getränkenamen hinzu
             commands.append(f"move {alcohol}")
             commands.append("wait 500")  # Wartezeit, um sicherzustellen, dass die Plattform still steht
 
