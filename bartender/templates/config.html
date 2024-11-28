@@ -273,26 +273,34 @@ async function saveConfig() {
 }
 
 
+function addDrinkConfigRow() {
+    const container = document.querySelector("#drink-config-list"); // Container für Getränke
+    const row = document.createElement("div");
+    row.className = "config-item"; // Gleiche Klasse wie bestehende Reihen
 
-        
-        function addConfigRow() {
-            const container = document.querySelector(".config-list");
-            const newItem = document.createElement("div");
-            newItem.className = "config-item";
-            newItem.innerHTML = `
-                <input type="text" class="config-name" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
-                <input type="number" class="config-position" placeholder="Position in mm">
-                <span class="config-drag" draggable="true">☰</span>
-                <button onclick="removeConfigRow(this)">Entfernen</button>
-            `;
-            container.appendChild(newItem);
-            enableDragAndDrop();
-        }
+    // HTML-Struktur der neuen Reihe
+    row.innerHTML = `
+        <input type="text" class="config-name" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
+        <input type="number" class="config-position" placeholder="Position in mm">
+        <span class="config-drag" draggable="true">☰</span>
+        <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
+    `;
 
-        function removeConfigRow(button) {
-            const item = button.closest(".config-item");
-            item.remove();
-        }
+    container.appendChild(row);
+
+    // Stelle sicher, dass die neue Zeile drag-and-drop-fähig ist
+    enableDragAndDrop();
+}
+
+
+
+
+
+function removeConfigRow(button) {
+    const row = button.closest(".config-item");
+    row.remove();
+}
+
 
 function addPumpConfigRow() {
     const container = document.getElementById("pump-config-list");
@@ -305,49 +313,69 @@ function addPumpConfigRow() {
     container.appendChild(newItem);
 }
 
+function enableDragAndDrop() {
+    const items = document.querySelectorAll(".config-item"); // Alle Konfigurationszeilen
+    const lists = document.querySelectorAll(".config-list"); // Beide Listen (Drinks und Pumps)
+
+    items.forEach(item => {
+        item.setAttribute("draggable", "true"); // Stelle sicher, dass alle Items draggable sind
+        item.addEventListener("dragstart", handleDragStart);
+        item.addEventListener("dragend", handleDragEnd);
+    });
+
+    lists.forEach(list => {
+        list.addEventListener("dragover", handleDragOver);
+        list.addEventListener("drop", handleDrop);
+    });
+}
+
+function handleDragStart(e) {
+    const item = e.target.closest(".config-item");
+    e.dataTransfer.setData("text/plain", item.dataset.index || ""); // Setze optional einen Index
+    item.classList.add("dragging");
+}
+
+function handleDragEnd(e) {
+    const item = e.target.closest(".config-item");
+    item.classList.remove("dragging");
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    const list = e.currentTarget;
+    const afterElement = getDragAfterElement(list, e.clientY);
+    const dragging = document.querySelector(".dragging");
+
+    if (!dragging) return; // Keine Aktion, falls nichts gezogen wird
+    if (afterElement == null) {
+        list.appendChild(dragging);
+    } else {
+        list.insertBefore(dragging, afterElement);
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll(".config-item:not(.dragging)")];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
         
-        function enableDragAndDrop() {
-            const items = document.querySelectorAll(".config-item");
-            const list = document.querySelector(".config-list");
+        document.addEventListener("DOMContentLoaded", () => {
+    enableDragAndDrop();
+});
 
-            items.forEach(item => {
-                const dragHandle = item.querySelector(".config-drag");
-                dragHandle.addEventListener("dragstart", () => {
-                    item.classList.add("dragging");
-                });
-
-                dragHandle.addEventListener("dragend", () => {
-                    item.classList.remove("dragging");
-                });
-            });
-
-            list.addEventListener("dragover", (e) => {
-                e.preventDefault();
-                const afterElement = getDragAfterElement(list, e.clientY);
-                const dragging = document.querySelector(".dragging");
-                if (afterElement == null) {
-                    list.appendChild(dragging);
-                } else {
-                    list.insertBefore(dragging, afterElement);
-                }
-            });
-        }
-
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll(".config-item:not(.dragging)")];
-
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-
-        document.addEventListener("DOMContentLoaded", enableDragAndDrop);
 
     </script>
 </head>
