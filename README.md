@@ -35,6 +35,7 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 
 # Currently working on:
 - Waiting to buy liquor dispensers
+- Software for additional pumps that can be configured
 
 # Total Hardware cost (not including 3D printing material): ~315€
 
