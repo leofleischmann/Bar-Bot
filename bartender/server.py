@@ -297,30 +297,63 @@ def get_recipe_content():
 
 @app.route("/send_command", methods=["POST"])
 def send_command():
-    """Manuelle Befehle mit Millimeterangaben oder Servo-Verzögerungen."""
-    command_type = request.json.get("type")
-    value = request.json.get("value")
-
-    if not command_type or not isinstance(value, int):
-        return jsonify({"status": "error", "message": "Ungültiger Befehl."}), 400
-
+    """
+    Handles manual and recipe-based commands for move, servo, and pump.
+    Ensures consistent handling of commands before sending to the ESP.
+    """
     try:
+        # Eingehende JSON-Daten parsen
+        data = request.json
+        if not data:
+            return jsonify({"status": "error", "message": "Keine Daten gesendet."}), 400
+
+        # Extrahiere die Parameter
+        command_type = data.get("type")
+        value = data.get("value")
+        pump = data.get("pump")  # Optional, nur für "pump"-Befehle relevant
+
+        # Validierung der Eingaben
+        if not command_type or not isinstance(value, int):
+            return jsonify({"status": "error", "message": "Ungültiger Befehlstyp oder Wert."}), 400
+
+        # Behandeln der verschiedenen Befehle
         if command_type == "move":
-            print(f"Sende 'move' Befehl mit Ziel {value} mm...")
+            # Plattformbewegung
+            print(f"Sending 'move' command to ESP with position {value} mm.")
             response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": value})
+            if response.status_code == 200:
+                return jsonify({"status": "success", "message": f"Plattform zu {value} mm bewegt."})
+            else:
+                return jsonify({"status": "error", "message": "ESP hat nicht auf 'move' reagiert."}), 500
+
         elif command_type == "servo":
-            print(f"Sende 'servo' Befehl mit Verzögerung {value} ms...")
+            # Servo-Bewegung
+            print(f"Sending 'servo' command to ESP with delay {value} ms.")
             response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": value})
-        else:
-            return jsonify({"status": "error", "message": "Unbekannter Befehlstyp."}), 400
+            if response.status_code == 200:
+                return jsonify({"status": "success", "message": f"Servo mit {value} ms Verzögerung bewegt."})
+            else:
+                return jsonify({"status": "error", "message": "ESP hat nicht auf 'servo' reagiert."}), 500
 
-        if response.status_code == 200:
-            return jsonify({"status": "success", "message": f"Befehl '{command_type}' erfolgreich ausgeführt."})
-        else:
-            return jsonify({"status": "error", "message": "ESP antwortet nicht."}), 500
+        elif command_type == "pump":
+            # Pumpenaktivierung
+            if not pump or not isinstance(pump, int):
+                return jsonify({"status": "error", "message": "Pumpennummer fehlt oder ist ungültig."}), 400
 
-    except requests.exceptions.RequestException as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+            print(f"Sending 'pump' command to ESP: Pump {pump}, Duration {value} ms.")
+            response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump, "duration": value})
+            if response.status_code == 200:
+                return jsonify({"status": "success", "message": f"Pumpe {pump} für {value} ms aktiviert."})
+            else:
+                return jsonify({"status": "error", "message": "ESP hat nicht auf 'pump' reagiert."}), 500
+
+        else:
+            # Unbekannter Befehlstyp
+            return jsonify({"status": "error", "message": f"Unbekannter Befehlstyp: {command_type}."}), 400
+
+    except Exception as e:
+        print(f"Error in send_command: {e}")
+        return jsonify({"status": "error", "message": "Serverfehler beim Verarbeiten des Befehls."}), 500
 
 @app.route("/generate_recipe", methods=["POST"])
 def generate_recipe():
@@ -467,6 +500,7 @@ def validate_recipe_command(command, config):
         return False, f"Unbekannter Befehl: {command}"
 
     return True, None
+
 def execute_recipe(recipe_file):
     """Führt ein Rezept aus, mit Aggregation von Pumpenläufen und korrekter Wartezeit."""
     global active_recipe, is_running, current_progress
@@ -481,6 +515,7 @@ def execute_recipe(recipe_file):
     current_target = None  # Aktuelles Ziel
     aggregated_pump_duration = 0  # Aggregierte Pumpenlaufzeit
     pump_in_progress = False  # Indikator für laufende Pumpe
+    abtropfzeit = 0  # Dynamische Abtropfzeit nach letztem Pumpenlauf
 
     try:
         with open(os.path.join(RECIPE_FOLDER, recipe_file), "r") as file:
@@ -504,14 +539,19 @@ def execute_recipe(recipe_file):
 
                     # Beende laufende Pumpenoperationen
                     if pump_in_progress:
-                        print(f"Aktiviere Pumpe {current_target} für {aggregated_pump_duration} ms.")
-                        requests.post(
-                            f"http://{ESP_IP}:{ESP_PORT}/pump",
-                            json={"pump": current_target, "duration": aggregated_pump_duration}
+                        pump_number = next(
+                            (i for i in range(1, 5) if config.get(f"pump{i}") == current_target),
+                            None
                         )
-                        time.sleep(aggregated_pump_duration / 1000.0)
-                        print("Warte 1000 ms nach Pumpenlauf zum Abtropfen.")
-                        time.sleep(1)
+                        if pump_number:
+                            print(f"Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
+                            requests.post(
+                                f"http://{ESP_IP}:{ESP_PORT}/pump",
+                                json={"pump": pump_number, "duration": aggregated_pump_duration}
+                            )
+                        print(f"Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
+                        time.sleep(abtropfzeit / 1000.0)  # Abtropfzeit berücksichtigen
+                        abtropfzeit = 0
                         aggregated_pump_duration = 0
                         pump_in_progress = False
 
@@ -559,21 +599,29 @@ def execute_recipe(recipe_file):
                     duration = int(command.split()[1])
 
                     # Warten nur, wenn keine Pumpe aggregiert wird
-                    if not pump_in_progress:
+                    if pump_in_progress:
+                        abtropfzeit = duration  # Speichere Abtropfzeit
+                        print(f"Setze Abtropfzeit auf {abtropfzeit} ms.")
+                    else:
                         print(f"Warte {duration} ms...")
                         time.sleep(duration / 1000.0)
 
                 elif command.startswith("done"):
                     # Beende laufende Pumpenoperationen
                     if pump_in_progress:
-                        print(f"Aktiviere Pumpe {current_target} für {aggregated_pump_duration} ms.")
-                        requests.post(
-                            f"http://{ESP_IP}:{ESP_PORT}/pump",
-                            json={"pump": current_target, "duration": aggregated_pump_duration}
+                        pump_number = next(
+                            (i for i in range(1, 5) if config.get(f"pump{i}") == current_target),
+                            None
                         )
-                        time.sleep(aggregated_pump_duration / 1000.0)
-                        print("Warte 1000 ms nach Pumpenlauf zum Abtropfen.")
-                        time.sleep(1)
+                        if pump_number:
+                            print(f"Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
+                            requests.post(
+                                f"http://{ESP_IP}:{ESP_PORT}/pump",
+                                json={"pump": pump_number, "duration": aggregated_pump_duration}
+                            )
+                        print(f"Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
+                        time.sleep(abtropfzeit / 1000.0)  # Abtropfzeit berücksichtigen
+                        abtropfzeit = 0
                         aggregated_pump_duration = 0
                         pump_in_progress = False
 
@@ -587,7 +635,6 @@ def execute_recipe(recipe_file):
 
     is_running = False
     active_recipe = None
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
