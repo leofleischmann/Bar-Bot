@@ -456,7 +456,7 @@ function getDragAfterElement(container, y) {
                 {% for i in range(1, 5) %}
                 <div class="config-item">
                     <span>Pumpe {{ i }}:</span>
-                    <input type="text" class="config-name" value="{{ config['pump' ~ i] }}" disabled>
+                    <input type="text" class="config-name" value="{{ config['pump' ~ i] }}">
                 </div>
                 {% endfor %}
             </div>
