@@ -14,6 +14,11 @@
 #define SLEEP_PIN 4
 #define SERVO_PIN 25 // Servo-Pin
 
+// Servo Steps definition (all active for 1/16)
+#define MS1 13
+#define MS2 12
+#define MS3 14
+
 #define PUMP1_PIN 21
 #define PUMP2_PIN 19
 #define PUMP3_PIN 18
@@ -80,11 +85,19 @@ void setup() {
     pinMode(LIMIT_SWITCH2_PIN, INPUT);
     pinMode(SLEEP_PIN, OUTPUT);
     digitalWrite(SLEEP_PIN, LOW);  // Treiber deaktivieren
+    
+    //Stepper Steps configuration
+    pinMode(MS1, OUTPUT);
+    pinMode(MS2, OUTPUT);
+    pinMode(MS3, OUTPUT);
+    digitalWrite(MS1, HIGH);
+    digitalWrite(MS2, HIGH);
+    digitalWrite(MS3, HIGH);
 
     // Pumpen-Pins initialisieren
     for (int i = 0; i < 4; i++) {
         pinMode(pumps[i].pin, OUTPUT);
-        digitalWrite(pumps[i].pin, LOW);  // Pumpen deaktivieren
+        digitalWrite(pumps[i].pin, HIGH);  // Pumpen deaktivieren (HIGH ist der inaktive Zustand bei aktiven LOW-Relais)
         pumps[i].active = false;         // Pumpenstatus zurücksetzen
     }
 
@@ -137,7 +150,7 @@ void loop() {
     for (int i = 0; i < 4; i++) {
         if (pumps[i].active && (currentMillis - pumps[i].start >= pumps[i].duration)) {
             pumps[i].active = false;
-            digitalWrite(pumps[i].pin, LOW);  // Schalte die Pumpe aus
+            digitalWrite(pumps[i].pin, HIGH);  // Schalte die Pumpe aus
             Serial.printf("Pumpe %d deaktiviert.\n", i + 1);
         }
     }
@@ -315,12 +328,12 @@ void activatePump(int pumpNumber, int duration) {
     pump.start = millis();
     pump.duration = duration;
 
-    digitalWrite(pump.pin, HIGH);  // Pumpe einschalten
+    digitalWrite(pump.pin, LOW);  // Pumpe einschalten
     Serial.printf("Pumpe %d aktiviert für %d ms.\n", pumpNumber, duration);
 
     // Automatisches Ausschalten nach Ablauf der Zeit
     delay(duration);
-    digitalWrite(pump.pin, LOW);  // Pumpe ausschalten
+    digitalWrite(pump.pin, HIGH);  // Pumpe ausschalten
     pump.active = false;
     Serial.printf("Pumpe %d wurde automatisch deaktiviert.\n", pumpNumber);
 }
