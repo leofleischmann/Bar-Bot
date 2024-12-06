@@ -12,91 +12,94 @@
             margin: 0;
             padding: 0;
         }
-       header {
-    background-color: #007bff;
-    color: white;
-    padding: 20px;
-}
 
-.header-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 1200px;
-    margin: 0 auto;
-    position: relative;
-}
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+        }
 
-header h1 {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 28px;
-    margin: 0;
-    text-align: center;
-    width: 100%; /* Für Mobilgeräte */
-}
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
 
-#esp-status {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    font-size: 14px;
-    font-weight: bold;
-}
+        header h1 {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            margin: 0;
+            text-align: center;
+            width: 100%;
+        }
 
-.status {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
+        #esp-status {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 14px;
+            font-weight: bold;
+        }
 
-.status .indicator {
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    display: inline-block;
-}
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
 
-.status.connected .indicator {
-    background-color: green;
-}
+        .status .indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+        }
 
-.status.disconnected .indicator {
-    background-color: red;
-}
+        .status.connected .indicator {
+            background-color: green;
+        }
 
-@media (max-width: 600px) {
-    .header-container {
-        flex-direction: column; /* Elemente vertikal anordnen */
-        align-items: center; /* Zentriere alle Inhalte */
-    }
+        .status.disconnected .indicator {
+            background-color: red;
+        }
 
-    #esp-status {
-        justify-content: center;
-        margin-top: 10px;
-        text-align: center; /* Zentriert den Text für Mobilgeräte */
-    }
+        @media (max-width: 600px) {
+            .header-container {
+                flex-direction: column;
+                align-items: center;
+            }
 
-    header h1 {
-        position: static; /* Entfernt absolute Positionierung */
-        transform: none; /* Entfernt zentrierte Übersetzung */
-        font-size: 24px; /* Passt die Schriftgröße für Mobilgeräte an */
-        margin: 0 0 10px 0; /* Abstand nach unten */
-        text-align: center; /* Überschrift auf mobilen Geräten zentrieren */
-    }
-}
+            #esp-status {
+                justify-content: center;
+                margin-top: 10px;
+                text-align: center;
+            }
 
+            header h1 {
+                position: static;
+                transform: none;
+                font-size: 24px;
+                margin: 0 0 10px 0;
+                text-align: center;
+            }
+        }
 
         main {
             padding: 20px;
             max-width: 900px;
             margin: 0 auto;
+            box-sizing: border-box;
         }
+
         nav {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
+
         nav button {
             background-color: #007bff;
             color: white;
@@ -107,14 +110,37 @@ header h1 {
             cursor: pointer;
             margin: 5px;
         }
+
         nav button:hover {
             background-color: #0056b3;
         }
+
+        .config-section {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
+        .config-section h2 {
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .config-section p {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
         }
+
         .grid-item {
             padding: 20px;
             border-radius: 10px;
@@ -122,19 +148,22 @@ header h1 {
             text-align: center;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             position: relative;
+            background-color: #fff;
         }
+
         .grid-item.valid {
             border-left: 5px solid #28a745;
-            background-color: white;
         }
+
         .grid-item.invalid {
             border-left: 5px solid #dc3545;
-            background-color: white;
         }
+
         .grid-item:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
+
         .grid-item .info-icon {
             position: absolute;
             top: 10px;
@@ -151,11 +180,13 @@ header h1 {
             align-items: center;
             font-weight: bold;
         }
+
         .grid-item .letter {
             font-size: 48px;
             font-weight: bold;
             color: #007bff;
         }
+
         .grid-item .name {
             font-size: 18px;
             margin: 10px 0;
@@ -164,6 +195,7 @@ header h1 {
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .start-button {
             background-color: #007bff;
             color: white;
@@ -174,15 +206,46 @@ header h1 {
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
+
         .start-button:hover {
             background-color: #0056b3;
         }
+
         footer {
             margin-top: 20px;
             text-align: center;
             font-size: 14px;
             color: #666;
+            padding-bottom: 20px;
         }
+
+        #progress-container {
+            display: none; 
+            text-align: center; 
+            margin-top: 20px;
+        }
+
+        #progress-text {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        #progress-container div[style*="width: 100%;"] {
+            background-color: #ccc; 
+            border-radius: 10px; 
+            margin: 0 auto; 
+            height: 20px; 
+            max-width: 500px;
+        }
+
+        #progress-bar {
+            width: 0%; 
+            background-color: #28a745; 
+            height: 20px; 
+            border-radius: 10px; 
+            transition: width 0.3s ease;
+        }
+
         form {
             margin-top: 20px;
             padding: 20px;
@@ -193,11 +256,13 @@ header h1 {
             margin: 20px auto;
             display: none;
         }
+
         form label {
             font-weight: bold;
             margin-bottom: 5px;
             display: block;
         }
+
         form input, form select {
             width: 100%;
             padding: 10px;
@@ -205,6 +270,7 @@ header h1 {
             border: 1px solid #ccc;
             border-radius: 5px;
         }
+
         form button {
             background-color: #28a745;
             color: white;
@@ -214,9 +280,11 @@ header h1 {
             font-size: 16px;
             cursor: pointer;
         }
+
         form button:hover {
             background-color: #218838;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -231,16 +299,20 @@ header h1 {
             width: 300px;
             text-align: center;
         }
+
         .modal h3 {
             margin-bottom: 15px;
         }
+
         .modal ul {
             list-style: none;
             padding: 0;
         }
+
         .modal ul li {
             margin-bottom: 8px;
         }
+
         .modal .close-button {
             background-color: #dc3545;
             color: white;
@@ -249,9 +321,11 @@ header h1 {
             padding: 5px 10px;
             cursor: pointer;
         }
+
         .modal .close-button:hover {
             background-color: #c82333;
         }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -262,44 +336,172 @@ header h1 {
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
         }
-        /* Snackbar-Container */
-    .snackbar {
-        visibility: hidden; /* Standardmäßig unsichtbar */
-        min-width: 300px;
-        max-width: 90%; /* Für kleine Bildschirme anpassbar */
-        background-color: #333; /* Standardfarbe */
-        color: #fff;
-        text-align: center;
-        border-radius: 8px;
-        padding: 16px 20px;
-        position: fixed;
-        z-index: 1000;
-        left: 50%; /* Horizontal zentriert */
-        bottom: 30px; /* Unten im Viewport */
-        transform: translateX(-50%);
-        font-size: 16px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        opacity: 0; /* Unsichtbar */
-        transition: opacity 0.3s ease, bottom 0.3s ease;
-    }
 
-    /* Snackbar sichtbar */
-    .snackbar.show {
-        visibility: visible;
-        opacity: 1; /* Voll sichtbar */
-        bottom: 50px; /* Nach oben animieren */
-    }
+        .snackbar {
+            visibility: hidden; 
+            min-width: 300px;
+            max-width: 90%; 
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px 20px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%; 
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            opacity: 0; 
+            transition: opacity 0.3s ease, bottom 0.3s ease;
+        }
 
-    /* Snackbar für Fehler */
-    .snackbar.error {
-        background-color: #f44336; /* Rot für Fehler */
-    }
+        .snackbar.show {
+            visibility: visible;
+            opacity: 1; 
+            bottom: 50px;
+        }
 
-    /* Snackbar für Erfolg */
-    .snackbar.success {
-        background-color: #4caf50; /* Grün für Erfolg */
-    }
+        .snackbar.error {
+            background-color: #f44336;
+        }
+
+        .snackbar.success {
+            background-color: #4caf50;
+        }
+
+        .toggle-manual {
+            margin-top: 30px;
+        }
+
+        .toggle-manual button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-manual button:hover {
+            background-color: #0056b3;
+        }
     </style>
+<script>
+    /* JavaScript Code wie im Original belassen */
+</script>
+</head>
+<body>
+<header>
+    <div class="header-container">
+        <h1>Drinks Übersicht</h1>
+        <div id="esp-status">
+            {% if esp_connected %}
+            <span class="status connected">
+                <span class="indicator"></span> ESP verbunden
+            </span>
+            {% else %}
+            <span class="status disconnected">
+                <span class="indicator"></span> ESP nicht verbunden
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<main>
+
+    <div id="progress-container">
+        <p id="progress-text">Fortschritt: 0%</p>
+        <div>
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <nav>
+        <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
+        <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
+    </nav>
+
+    <section class="config-section">
+        <h2>Verfügbare Drinks</h2>
+        <div class="grid-container">
+            {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
+            <div class="grid-item valid">
+                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <div class="letter">{{ recipe.name[0] }}</div>
+                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+                <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="config-section">
+        <h2>Nicht verfügbare Drinks</h2>
+        <div class="grid-container">
+            {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
+            <div class="grid-item invalid">
+                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <div class="letter">{{ recipe.name[0] }}</div>
+                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+                <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">Details anzeigen</button>
+                <div id="reasons-{{ loop.index }}" style="display:none;">
+                    {% for reason in recipe.reasons %}
+                        {{ reason }}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
+    <div id="drink-details-modal" class="modal">
+        <h3>Rezept Zutaten</h3>
+        <ul id="recipe-details-list"></ul>
+        <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
+    </div>
+
+    <div class="toggle-manual">
+        <button onclick="toggleManualControl()">
+            Manuelle Steuerung anzeigen/ausblenden
+        </button>
+    </div>
+
+    <form onsubmit="event.preventDefault(); sendManualCommand();">
+        <label for="manualCommandType">Befehlstyp:</label>
+        <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
+            <option value="move">Plattform bewegen (mm)</option>
+            <option value="servo">Servo bewegen (ms)</option>
+            <option value="pump">Pumpe aktivieren (ms)</option>
+        </select>
+        <div id="pumpOptions" style="display: none;">
+            <label for="pumpNumber">Pumpe:</label>
+            <select id="pumpNumber" name="pumpNumber" required>
+                <option value="1">Pumpe 1</option>
+                <option value="2">Pumpe 2</option>
+                <option value="3">Pumpe 3</option>
+                <option value="4">Pumpe 4</option>
+            </select>
+        </div>
+        <label for="manualValue">Wert:</label>
+        <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
+        <button type="submit">Befehl senden</button>
+    </form>
+
+</main>
+
+<footer>
+    &copy; 2024 Leo Fleischmann
+</footer>
+
+<div id="snackbar" class="snackbar"></div>
+
 <script>
 
 async function startRecipe(recipeName) {
@@ -584,144 +786,9 @@ updateESPStatus();
 setInterval(updateESPStatus, 5000);
 </script>
 
-</head>
-<body>
-<header>
-    <div class="header-container">
-        <!-- Überschrift -->
-        <h1>Drinks Übersicht</h1>
-
-        <!-- ESP-Status -->
-        <div id="esp-status">
-            {% if esp_connected %}
-            <span class="status connected">
-                <span class="indicator"></span> ESP verbunden
-            </span>
-            {% else %}
-            <span class="status disconnected">
-                <span class="indicator"></span> ESP nicht verbunden
-            </span>
-            {% endif %}
-        </div>
-    </div>
-</header>
-
-    <main>
-
-    <div id="progress-container" style="display: none; text-align: center; margin-top: 20px;">
-        <p id="progress-text">Fortschritt: 0%</p>
-        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
-            <div id="progress-bar" style="width: 0%; background-color: #28a745; height: 20px; border-radius: 10px;"></div>
-        </div>
-    </div>
-        
-        <nav>
-            <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
-            <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
-        </nav>
-
-        <h2>Verfügbare Drinks</h2>
-        <div class="grid-container">
-            {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
-            <div class="grid-item valid">
-                <!-- Info-Icon für Details -->
-                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-                <!-- Erstes Zeichen des Rezepts -->
-                <div class="letter">{{ recipe.name[0] }}</div>
-                <!-- Name des Rezepts ohne .txt -->
-                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <!-- Starten-Button -->
-                <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
-            </div>
-            {% endfor %}
-        </div>
-
-        <h2>Nicht verfügbare Drinks</h2>
-        <div class="grid-container">
-            {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
-            <div class="grid-item invalid">
-                <!-- Info-Icon für Details -->
-                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-                <!-- Erstes Zeichen des Rezepts -->
-                <div class="letter">{{ recipe.name[0] }}</div>
-                <!-- Name des Rezepts ohne .txt -->
-                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <!-- Details-Button für ungültige Gründe -->
-                <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">Details anzeigen</button>
-                <!-- Unsichtbare Liste der Gründe -->
-                <div id="reasons-{{ loop.index }}" style="display:none;">
-                    {% for reason in recipe.reasons %}
-                        {{ reason }}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Modal für Rezeptdetails -->
-        <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
-        <div id="drink-details-modal" class="modal">
-            <h3>Rezept Zutaten</h3>
-            <ul id="recipe-details-list"></ul>
-            <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
-        </div>
-
-        <!-- Manuelle Steuerung anzeigen -->
-        <div class="toggle-manual" style="text-align: center; margin-top: 20px;">
-            <button onclick="toggleManualControl()" style="
-                background-color: #007bff;
-                color: white;
-                border: none;
-                border-radius: 50px;
-                padding: 10px 30px;
-                font-size: 16px;
-                cursor: pointer;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                transition: all 0.3s ease;">
-                Manuelle Steuerung anzeigen/ausblenden
-            </button>
-        </div>
-
-        <!-- Formular für manuelle Steuerung -->
-<form onsubmit="event.preventDefault(); sendManualCommand();" style="margin-top: 20px; display: none;">
-    <label for="manualCommandType">Befehlstyp:</label>
-    <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
-        <option value="move">Plattform bewegen (mm)</option>
-        <option value="servo">Servo bewegen (ms)</option>
-        <option value="pump">Pumpe aktivieren (ms)</option>
-    </select>
-    <div id="pumpOptions" style="display: none;">
-        <label for="pumpNumber">Pumpe:</label>
-        <select id="pumpNumber" name="pumpNumber" required>
-            <option value="1">Pumpe 1</option>
-            <option value="2">Pumpe 2</option>
-            <option value="3">Pumpe 3</option>
-            <option value="4">Pumpe 4</option>
-        </select>
-    </div>
-    <label for="manualValue">Wert:</label>
-    <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
-    <button type="submit" style="
-        background-color: #28a745;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        padding: 10px 30px;
-        font-size: 16px;
-        cursor: pointer;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;">
-        Befehl senden
-    </button>
-</form>
-
-    </main>
-    <footer>
-        &copy; 2024 Leo Fleischmann
-    </footer>
-
-
-    <div id="snackbar" class="snackbar"></div>
 </body>
-
 </html>
+
+
+
+
