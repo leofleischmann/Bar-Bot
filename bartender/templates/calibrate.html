@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalibrierung</title>
+    <style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        background-color: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+    header h1 {
+        margin: 0;
+        font-size: 24px;
+    }
+    main {
+        padding: 20px;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    nav {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    nav button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin: 10px;
+    }
+    nav button:hover {
+        background-color: #0056b3;
+    }
+
+    .control-section {
+        background-color: white;
+        padding: 15px;
+        border-radius:8px;
+        margin-bottom:20px;
+        border:1px solid #ccc;
+        display:none; /* Standardmäßig ausgeblendet */
+    }
+
+    .control-section.active {
+        display:block;
+    }
+
+    .control-section h2 {
+        margin-top:0;
+        font-size: 18px;
+        margin-bottom:10px;
+    }
+
+    .form-group {
+        margin-bottom:10px;
+    }
+    .form-group label {
+        display:inline-block;
+        width:180px;
+        font-weight:bold;
+    }
+    .form-group input {
+        padding:5px;
+        width:100px;
+    }
+
+    button.action-btn {
+        background-color:#28a745;
+        color:white;
+        border:none;
+        padding:8px 15px;
+        border-radius:5px;
+        cursor:pointer;
+        margin:5px 0;
+    }
+    button.action-btn:hover {
+        background-color:#218838;
+    }
+
+    .move-controls button, .servo-controls button, .pump-controls button {
+        margin-right:10px;
+        margin-bottom:10px;
+    }
+
+    .save-button {
+        text-align:center;
+        margin-top:20px;
+    }
+
+    .snackbar {
+        visibility: hidden;
+        min-width: 300px;
+        max-width: 90%; 
+        background-color: #333; 
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 16px 20px;
+        position: fixed;
+        z-index: 1000;
+        left: 50%; 
+        bottom: 30px; 
+        transform: translateX(-50%);
+        font-size: 16px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        opacity: 0; 
+        transition: opacity 0.3s ease, bottom 0.3s ease;
+    }
+    .snackbar.show {
+        visibility: visible;
+        opacity: 1; 
+        bottom: 50px; 
+    }
+    .snackbar.error {
+        background-color: #f44336; 
+    }
+    .snackbar.success {
+        background-color: #4caf50; 
+    }
+
+    .show-all-button {
+        background-color: #6c757d;
+        color:white;
+        border:none;
+        padding:8px 15px;
+        border-radius:5px;
+        cursor:pointer;
+        margin-bottom:20px;
+    }
+    .show-all-button:hover {
+        background-color:#5a6268;
+    }
+
+    </style>
+    <script>
+        let item = "{{ item }}";
+        let isPump = {{ 'true' if is_pump else 'false' }};
+        let pumpNumber = {{ pump_number if pump_number else 'null' }};
+
+        function showSnackbar(message, type = "success") {
+            const snackbar = document.getElementById("snackbar");
+            snackbar.textContent = message; 
+            snackbar.className = "snackbar"; 
+            snackbar.classList.add(type); 
+            snackbar.classList.add("show"); 
+            setTimeout(() => {
+                snackbar.classList.remove("show");
+            }, 3000);
+        }
+
+        async function sendCommand(type, value, pump = null) {
+            const data = {type, value};
+            if (pump !== null) {
+                data.pump = pump;
+            }
+
+            try {
+                const response = await fetch("/send_command", {
+                    method:"POST",
+                    headers: {"Content-Type":"application/json"},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    showSnackbar(result.message, "success");
+                } else {
+                    showSnackbar(result.message, "error");
+                }
+            } catch (error) {
+                showSnackbar("Fehler beim Senden des Befehls", "error");
+            }
+        }
+
+        async function saveCalibration() {
+            const data = { item: item };
+
+            const pourTimeInput = document.getElementById("pour_time_input");
+            if (pourTimeInput) {
+                data["pour_time"] = parseInt(pourTimeInput.value) || 2000;
+            }
+
+            if (isPump && pumpNumber) {
+                const pumpDrink = document.getElementById("pump_drink_input").value.trim();
+                const pumpTime = parseInt(document.getElementById("pump_time_input").value.trim()) || 1000;
+                const pumpPos = parseInt(document.getElementById("pump_position_input").value.trim()) || 250;
+                data["pump_drink"] = pumpDrink;
+                data["pump_time"] = pumpTime;
+                data["pump_position"] = pumpPos;
+            } else {
+                // Drink
+                const drinkPosInput = document.getElementById("drink_position_input");
+                if (drinkPosInput) {
+                    data["drink_position"] = parseInt(drinkPosInput.value.trim()) || 0;
+                }
+            }
+
+            try {
+                const response = await fetch("/calibrate", {
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    showSnackbar("Werte gespeichert.", "success");
+                } else {
+                    showSnackbar(result.message, "error");
+                }
+            } catch (error) {
+                showSnackbar("Fehler beim Speichern der Kalibrierung", "error");
+            }
+        }
+
+        function toggleAllSections() {
+            const sections = document.querySelectorAll('.control-section');
+            const btn = document.getElementById('showAllBtn');
+            const showAll = btn.getAttribute('data-show-all') === 'true'; 
+            if (showAll) {
+                // Auf Standard zurücksetzen
+                initializeSections();
+                btn.setAttribute('data-show-all', 'false');
+                btn.textContent = "Alle Operationen anzeigen";
+            } else {
+                // Alle anzeigen
+                sections.forEach(sec => sec.classList.add('active'));
+                btn.setAttribute('data-show-all', 'true');
+                btn.textContent = "Nur relevante Operationen anzeigen";
+            }
+        }
+
+        function initializeSections() {
+            const moveSec = document.querySelector('.move-controls');
+            const servoSec = document.querySelector('.servo-controls');
+            const pumpSec = document.querySelector('.pump-controls');
+            const currentValuesSec = document.querySelector('.current-values');
+
+            currentValuesSec.classList.add('active');
+
+            // Logik:
+            // - Getränk in der Pumpe (is_pump = true): Move + Pump anzeigen
+            // - Getränk nicht in Pumpe (is_pump = false): Move + Servo anzeigen
+
+            if (isPump) {
+                moveSec.classList.add('active');
+                pumpSec.classList.add('active');
+            } else {
+                moveSec.classList.add('active');
+                servoSec.classList.add('active');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSections();
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Kalibrierung: {{ item }}</h1>
+    </header>
+    <main>
+        <nav>
+            <button onclick="window.location.href='/config'">Zurück zur Konfiguration</button>
+        </nav>
+
+        <button id="showAllBtn" class="show-all-button" data-show-all="false" onclick="toggleAllSections()">Alle Operationen anzeigen</button>
+
+        <section class="control-section current-values">
+            <h2>Aktuelle Werte</h2>
+            {% if is_pump %}
+            <div class="form-group">
+                <label>Pumpe Getränk:</label>
+                <input type="text" id="pump_drink_input" value="{{ pump_drink }}">
+            </div>
+            <div class="form-group">
+                <label>Pumpe Zeit 1cl (ms):</label>
+                <input type="number" id="pump_time_input" value="{{ pump_time_val }}">
+            </div>
+            <div class="form-group">
+                <label>Pumpe Position (mm):</label>
+                <input type="number" id="pump_position_input" value="{{ pump_pos_val }}">
+            </div>
+            {% else %}
+            {% if drink_position is not none %}
+            <div class="form-group">
+                <label>Getränke-Position (mm):</label>
+                <input type="number" id="drink_position_input" value="{{ drink_position }}">
+            </div>
+            {% endif %}
+            <div class="form-group">
+                <label>Pour Time (2cl):</label>
+                <input type="number" id="pour_time_input" value="{{ pour_time }}">
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="control-section move-controls">
+            <h2>Plattform bewegen</h2>
+            <p>Testen Sie verschiedene Positionen, um die richtige Einstellung zu finden:</p>
+            <button class="action-btn" onclick="sendCommand('move',0)">Nach 0 mm</button>
+            <button class="action-btn" onclick="sendCommand('move',100)">Nach 100 mm</button>
+            <button class="action-btn" onclick="sendCommand('move',300)">Nach 300 mm</button>
+            <button class="action-btn" onclick="sendCommand('move',500)">Nach 500 mm</button>
+            <br>
+            <label>Individuelle Position (mm):</label> <input type="number" id="move_custom" value="250"> 
+            <button class="action-btn" onclick="sendCommand('move', parseInt(document.getElementById('move_custom').value)||0)">Bewegen</button>
+        </section>
+
+        <section class="control-section servo-controls">
+            <h2>Servo testen</h2>
+            <p>Stellen Sie die Ausgießdauer des Servos ein:</p>
+            <label>Verzögerung (ms):</label> <input type="number" id="servo_ms" value="1000">
+            <button class="action-btn" onclick="sendCommand('servo', parseInt(document.getElementById('servo_ms').value)||1000)">Servo bewegen</button>
+        </section>
+
+        <section class="control-section pump-controls">
+            <h2>Pumpe testen</h2>
+            <p>Falls es sich um ein Pumpengetränk handelt, können Sie hier die Pumpe testen:</p>
+            <label>Pumpe Nr.:</label> <input type="number" id="pump_num" value="1" min="1" max="4">
+            <label>Dauer (ms):</label> <input type="number" id="pump_duration" value="1000">
+            <button class="action-btn" onclick="sendCommand('pump', parseInt(document.getElementById('pump_duration').value)||1000, parseInt(document.getElementById('pump_num').value)||1)">Pumpe aktivieren</button>
+        </section>
+
+        <div class="save-button">
+            <button class="action-btn" onclick="saveCalibration()">Werte speichern</button>
+        </div>
+    </main>
+    <div id="snackbar" class="snackbar"></div>
+</body>
+</html>
