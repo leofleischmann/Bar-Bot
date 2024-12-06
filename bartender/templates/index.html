@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,6 +112,9 @@
             font-size: 16px;
             cursor: pointer;
             margin: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
         nav button:hover {
@@ -205,6 +211,9 @@
             font-size: 14px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .start-button:hover {
@@ -373,6 +382,7 @@
 
         .toggle-manual {
             margin-top: 30px;
+            text-align:center;
         }
 
         .toggle-manual button {
@@ -385,123 +395,15 @@
             cursor: pointer;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
+            display:inline-flex;
+            align-items:center;
+            gap:5px;
         }
 
         .toggle-manual button:hover {
             background-color: #0056b3;
         }
     </style>
-<script>
-    /* JavaScript Code wie im Original belassen */
-</script>
-</head>
-<body>
-<header>
-    <div class="header-container">
-        <h1>Drinks Übersicht</h1>
-        <div id="esp-status">
-            {% if esp_connected %}
-            <span class="status connected">
-                <span class="indicator"></span> ESP verbunden
-            </span>
-            {% else %}
-            <span class="status disconnected">
-                <span class="indicator"></span> ESP nicht verbunden
-            </span>
-            {% endif %}
-        </div>
-    </div>
-</header>
-
-<main>
-
-    <div id="progress-container">
-        <p id="progress-text">Fortschritt: 0%</p>
-        <div>
-            <div id="progress-bar"></div>
-        </div>
-    </div>
-
-    <nav>
-        <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
-        <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
-    </nav>
-
-    <section class="config-section">
-        <h2>Verfügbare Drinks</h2>
-        <div class="grid-container">
-            {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
-            <div class="grid-item valid">
-                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-                <div class="letter">{{ recipe.name[0] }}</div>
-                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
-            </div>
-            {% endfor %}
-        </div>
-    </section>
-
-    <section class="config-section">
-        <h2>Nicht verfügbare Drinks</h2>
-        <div class="grid-container">
-            {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
-            <div class="grid-item invalid">
-                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-                <div class="letter">{{ recipe.name[0] }}</div>
-                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">Details anzeigen</button>
-                <div id="reasons-{{ loop.index }}" style="display:none;">
-                    {% for reason in recipe.reasons %}
-                        {{ reason }}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </section>
-
-    <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
-    <div id="drink-details-modal" class="modal">
-        <h3>Rezept Zutaten</h3>
-        <ul id="recipe-details-list"></ul>
-        <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
-    </div>
-
-    <div class="toggle-manual">
-        <button onclick="toggleManualControl()">
-            Manuelle Steuerung anzeigen/ausblenden
-        </button>
-    </div>
-
-    <form onsubmit="event.preventDefault(); sendManualCommand();">
-        <label for="manualCommandType">Befehlstyp:</label>
-        <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
-            <option value="move">Plattform bewegen (mm)</option>
-            <option value="servo">Servo bewegen (ms)</option>
-            <option value="pump">Pumpe aktivieren (ms)</option>
-        </select>
-        <div id="pumpOptions" style="display: none;">
-            <label for="pumpNumber">Pumpe:</label>
-            <select id="pumpNumber" name="pumpNumber" required>
-                <option value="1">Pumpe 1</option>
-                <option value="2">Pumpe 2</option>
-                <option value="3">Pumpe 3</option>
-                <option value="4">Pumpe 4</option>
-            </select>
-        </div>
-        <label for="manualValue">Wert:</label>
-        <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
-        <button type="submit">Befehl senden</button>
-    </form>
-
-</main>
-
-<footer>
-    &copy; 2024 Leo Fleischmann
-</footer>
-
-<div id="snackbar" class="snackbar"></div>
-
 <script>
 
 async function startRecipe(recipeName) {
@@ -786,9 +688,143 @@ updateESPStatus();
 setInterval(updateESPStatus, 5000);
 </script>
 
+
+</head>
+<body>
+<header>
+    <div class="header-container">
+        <h1>Drinks Übersicht</h1>
+        <div id="esp-status">
+            {% if esp_connected %}
+            <span class="status connected">
+                <span class="indicator"></span> ESP verbunden
+            </span>
+            {% else %}
+            <span class="status disconnected">
+                <span class="indicator"></span> ESP nicht verbunden
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<main>
+
+    <div id="progress-container">
+        <p id="progress-text">Fortschritt: 0%</p>
+        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <nav>
+        <!-- Rezepte verwalten Button mit "journal-text" Icon -->
+        <button onclick="window.location.href='/rezepte'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
+                <path d="M5 3v1h6V3H5zM4 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4zm1 2h6v1H5V3zm0 2h6v1H5V5zm0 2h6v5H5V7z"/>
+            </svg>
+            Rezepte verwalten
+        </button>
+        <!-- Konfiguration verwalten Button mit "gear" Icon -->
+        <button onclick="window.location.href='/config'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.5.5 0 0 1-.465.347H4.964c-1.326 0-2.428.97-2.653 2.245l-.056.3a.5.5 0 0 1-.347.405L1.236 5.358c-1.195.363-1.195 2.08 0 2.443l.319.094a.5.5 0 0 1 .347.405l.056.3c.225 1.275 1.327 2.245 2.653 2.245h.681a.5.5 0 0 1 .465.347l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.5.5 0 0 1 .465-.347h.681c1.326 0 2.428-.97 2.653-2.245l.056-.3a.5.5 0 0 1 .347-.405l.319-.094c1.195-.363 1.195-2.08 0-2.443l-.319-.094a.5.5 0 0 1-.347-.405l-.056-.3c-.225-1.275-1.327-2.245-2.653-2.245h-.681a.5.5 0 0 1-.465-.347l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319c.07.235.278.4.52.4h.681c.9 0 1.645.675 1.783 1.563l.056.3c.03.175.148.325.317.389l.319.094c.835.246.835 1.428 0 1.674l-.319.094a.5.5 0 0 0-.317.389l-.056.3c-.138.888-.883 1.563-1.783 1.563h-.681a.5.5 0 0 0-.52.4l-.094.319c-.246.835-1.428.835-1.674 0l-.094-.319a.5.5 0 0 0-.52-.4h-.681c-.9 0-1.645-.675-1.783-1.563l-.056-.3a.5.5 0 0 0-.317-.389l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094a.5.5 0 0 0 .317-.389l.056-.3c.138-.888.883-1.563 1.783-1.563h.681a.5.5 0 0 0 .52-.4l.094-.319z"/>
+            </svg>
+            Konfiguration verwalten
+        </button>
+    </nav>
+
+    <section class="config-section">
+        <h2>Verfügbare Drinks</h2>
+        <div class="grid-container">
+            {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
+            <div class="grid-item valid">
+                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <div class="letter">{{ recipe.name[0] }}</div>
+                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+                <!-- Starten-Button mit Play-Icon -->
+                <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
+                        <path d="M11.596 8.697l-6.363 3.692A.75.75 0 0 1 4 11.692V4.308a.75.75 0 0 1 1.233-.604l6.363 3.692a.75.75 0 0 1 0 1.301z"/>
+                    </svg>
+                    Starten
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="config-section">
+        <h2>Nicht verfügbare Drinks</h2>
+        <div class="grid-container">
+            {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
+            <div class="grid-item invalid">
+                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <div class="letter">{{ recipe.name[0] }}</div>
+                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+                <!-- Details anzeigen Button mit Eye-Icon -->
+                <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5 8-5.5 8-5.5zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
+                    </svg>
+                    Details anzeigen
+                </button>
+                <div id="reasons-{{ loop.index }}" style="display:none;">
+                    {% for reason in recipe.reasons %}
+                        {{ reason }}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
+    <div id="drink-details-modal" class="modal">
+        <h3>Rezept Zutaten</h3>
+        <ul id="recipe-details-list"></ul>
+        <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
+    </div>
+
+    <div class="toggle-manual">
+        <!-- Manuelle Steuerung mit Werkzeug-Icon -->
+        <button onclick="toggleManualControl()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tools" viewBox="0 0 16 16">
+                <path d="M1 0a.5.5 0 0 1 .5.5V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1a.5.5 0 0 1-.5.5h-1v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15H4v.5a.5.5 0 0 1-1 0V15H2v.5a.5.5 0 0 1-1 0V15H.5A.5.5 0 0 1 0 14.5v-1h1v-1H.5a.5.5 0 0 1 0-1H1v-1H.5a.5.5 0 0 1 0-1H1V8H.5a.5.5 0 0 1 0-1H1V6H.5a.5.5 0 0 1 0-1H1V4H.5a.5.5 0 0 1 0-1H1V2H.5A.5.5 0 0 1 0 1.5V1a.5.5 0 0 1 .5-.5Z"/>
+            </svg>
+            Manuelle Steuerung anzeigen/ausblenden
+        </button>
+    </div>
+
+    <form onsubmit="event.preventDefault(); sendManualCommand();">
+        <label for="manualCommandType">Befehlstyp:</label>
+        <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
+            <option value="move">Plattform bewegen (mm)</option>
+            <option value="servo">Servo bewegen (ms)</option>
+            <option value="pump">Pumpe aktivieren (ms)</option>
+        </select>
+        <div id="pumpOptions" style="display: none;">
+            <label for="pumpNumber">Pumpe:</label>
+            <select id="pumpNumber" name="pumpNumber" required>
+                <option value="1">Pumpe 1</option>
+                <option value="2">Pumpe 2</option>
+                <option value="3">Pumpe 3</option>
+                <option value="4">Pumpe 4</option>
+            </select>
+        </div>
+        <label for="manualValue">Wert:</label>
+        <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
+        <button type="submit">Befehl senden</button>
+    </form>
+
+</main>
+
+<footer>
+    &copy; 2024 Leo Fleischmann
+</footer>
+
+<div id="snackbar" class="snackbar"></div>
+
 </body>
 </html>
-
-
-
-
