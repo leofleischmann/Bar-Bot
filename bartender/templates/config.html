@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Konfiguration verwalten</title>
     <style>
+    /* CSS wie gehabt, unverändert */
     body {
         font-family: 'Arial', sans-serif;
         background-color: #f5f5f5;
@@ -73,7 +74,7 @@
     .config-item {
         display: flex;
         align-items: center;
-        justify-content: space-between; /* Gleichmäßige Verteilung */
+        justify-content: space-between; 
         background-color: white;
         padding: 10px 15px;
         border: 1px solid #ccc;
@@ -82,10 +83,10 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
     .config-item.dragging {
-        background-color: #e0e0e0; /* Grauer Hintergrund */
-        transform: scale(1.05); /* Vergrößert das Element leicht */
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Hebt das Element optisch hervor */
-        transition: background-color 0.2s, transform 0.2s; /* Sanfte Übergänge */
+        background-color: #e0e0e0; 
+        transform: scale(1.05); 
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+        transition: background-color 0.2s, transform 0.2s; 
     }
     .config-name {
         width: 45%;
@@ -104,15 +105,15 @@
         font-size: 14px;
         text-align: right;
     }
-.config-drag {
-  cursor: grab;
-  color: #666;
-  font-size: 18px;
-  user-select: none;
-}
-.config-drag:active {
-  cursor: grabbing;
-}
+    .config-drag {
+      cursor: grab;
+      color: #666;
+      font-size: 18px;
+      user-select: none;
+    }
+    .config-drag:active {
+      cursor: grabbing;
+    }
     .config-item button {
         background-color: #dc3545;
         color: white;
@@ -124,11 +125,6 @@
     }
     .config-item button:hover {
         background-color: #c82333;
-    }
-    @media (max-width: 768px) {
-        .config-drag {
-            margin-right: 10px; /* Kleinere Abstände auf mobilen Geräten */
-        }
     }
     .add-config {
         text-align: center;
@@ -169,231 +165,174 @@
         color: #666;
     }
 
-    /* Snackbar-Container */
     .snackbar {
-        visibility: hidden; /* Standardmäßig unsichtbar */
+        visibility: hidden;
         min-width: 300px;
-        max-width: 90%; /* Für kleine Bildschirme anpassbar */
-        background-color: #333; /* Standardfarbe */
+        max-width: 90%; 
+        background-color: #333; 
         color: #fff;
         text-align: center;
         border-radius: 8px;
         padding: 16px 20px;
         position: fixed;
         z-index: 1000;
-        left: 50%; /* Horizontal zentriert */
-        bottom: 30px; /* Unten im Viewport */
+        left: 50%; 
+        bottom: 30px; 
         transform: translateX(-50%);
         font-size: 16px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        opacity: 0; /* Unsichtbar */
+        opacity: 0; 
         transition: opacity 0.3s ease, bottom 0.3s ease;
     }
-
-    /* Snackbar sichtbar */
     .snackbar.show {
         visibility: visible;
-        opacity: 1; /* Voll sichtbar */
-        bottom: 50px; /* Nach oben animieren */
+        opacity: 1; 
+        bottom: 50px; 
     }
-
-    /* Snackbar für Fehler */
     .snackbar.error {
-        background-color: #f44336; /* Rot für Fehler */
+        background-color: #f44336; 
     }
-
-    /* Snackbar für Erfolg */
     .snackbar.success {
-        background-color: #4caf50; /* Grün für Erfolg */
+        background-color: #4caf50; 
     }
-</style>
+    </style>
 
     <script>
         function showSnackbar(message, type = "success") {
-        const snackbar = document.getElementById("snackbar");
-        snackbar.textContent = message; // Setzt den Text der Snackbar
-        snackbar.className = "snackbar"; // Standardstil
-        snackbar.classList.add(type); // Fügt Erfolg- oder Fehlerstil hinzu
-        snackbar.classList.add("show"); // Snackbar anzeigen
+            const snackbar = document.getElementById("snackbar");
+            snackbar.textContent = message; 
+            snackbar.className = "snackbar"; 
+            snackbar.classList.add(type); 
+            snackbar.classList.add("show"); 
 
-        // Nach 3 Sekunden ausblenden
-        setTimeout(() => {
-            snackbar.classList.remove("show");
-        }, 3000);
-    }
-
-async function saveConfig() {
-    const pourTimeInput = document.getElementById("pour-time-value").value.trim();
-    const pumpTimeInput = document.getElementById("pump-time").value.trim();
-    const pumpPositionInput = document.getElementById("pump-position").value.trim();
-    const pumpItems = document.querySelectorAll("#pump-config-list .config-item");
-    const drinkItems = document.querySelectorAll("#drink-config-list .config-item");
-
-    // Konfigurationsobjekt erstellen
-    const config = {
-        pour_time: parseInt(pourTimeInput) || 2000,  // Standardwert, falls leer
-        pump_time: parseInt(pumpTimeInput) || 1000, // Standardwert, falls leer
-        pumpen: parseInt(pumpPositionInput) || 250  // Standardwert, falls leer
-    };
-
-    // Pumpen-Daten hinzufügen
-    pumpItems.forEach((pumpItem, index) => {
-        const drinkName = pumpItem.querySelector(".config-name").value.trim();
-        if (drinkName) {
-            config[`pump${index + 1}`] = drinkName;
+            setTimeout(() => {
+                snackbar.classList.remove("show");
+            }, 3000);
         }
-    });
 
-    // Getränke-Daten hinzufügen
-    drinkItems.forEach(drinkItem => {
-        const name = drinkItem.querySelector(".config-name").value.trim();
-        const position = parseInt(drinkItem.querySelector(".config-position").value.trim());
-        if (name && !isNaN(position)) {
-            config[name] = position;
+        async function saveConfig() {
+            const pourTimeInput = document.getElementById("pour-time-value").value.trim();
+
+            const drinkItems = document.querySelectorAll("#drink-config-list .config-item");
+            const config = {
+                pour_time: parseInt(pourTimeInput) || 2000,
+            };
+
+            // Getränke-Daten hinzufügen
+            drinkItems.forEach(drinkItem => {
+                const name = drinkItem.querySelector(".config-name").value.trim();
+                const position = parseInt(drinkItem.querySelector(".config-position").value.trim());
+                if (name && !isNaN(position)) {
+                    config[name] = position;
+                }
+            });
+
+            // Pumpen-Daten auslesen
+            for (let i = 1; i <= 4; i++) {
+                const pumpDrink = document.getElementById(`pump${i}_drink`).value.trim();
+                const pumpTime = parseInt(document.getElementById(`pump${i}_time`).value.trim()) || 1000;
+                const pumpPosition = parseInt(document.getElementById(`pump${i}_position`).value.trim()) || 250;
+
+                if (pumpDrink) {
+                    config[`pump${i}`] = pumpDrink;
+                }
+                config[`pump${i}_time`] = pumpTime;
+                config[`pump${i}_position`] = pumpPosition;
+            }
+
+            try {
+                const response = await fetch("/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ config }),
+                });
+
+                const result = await response.json();
+                if (result.status === "success") {
+                    showSnackbar("Konfiguration erfolgreich gespeichert", "success");
+                } else {
+                    throw new Error(result.message || "Fehler beim Speichern der Konfiguration");
+                }
+            } catch (error) {
+                showSnackbar(error.message, "error");
+            }
         }
-    });
 
-    try {
-        // Konfiguration an den Server senden
-        const response = await fetch("/config", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ config }),
-        });
-
-        const result = await response.json();
-        if (result.status === "success") {
-            showSnackbar("Konfiguration erfolgreich gespeichert", "success");
-        } else {
-            throw new Error(result.message || "Fehler beim Speichern der Konfiguration");
+        function addDrinkConfigRow() {
+            const container = document.querySelector("#drink-config-list");
+            const row = document.createElement("div");
+            row.className = "config-item"; 
+            row.innerHTML = `
+                <input type="text" class="config-name" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
+                <input type="number" class="config-position" placeholder="Position in mm">
+                <span class="config-drag" draggable="true">☰</span>
+                <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
+            `;
+            container.appendChild(row);
+            enableDragAndDrop();
         }
-    } catch (error) {
-        showSnackbar(error.message, "error");
-    }
-}
 
-
-function addDrinkConfigRow() {
-    const container = document.querySelector("#drink-config-list"); // Container für Getränke
-    const row = document.createElement("div");
-    row.className = "config-item"; // Gleiche Klasse wie bestehende Reihen
-
-    // HTML-Struktur der neuen Reihe
-    row.innerHTML = `
-        <input type="text" class="config-name" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
-        <input type="number" class="config-position" placeholder="Position in mm">
-        <span class="config-drag" draggable="true">☰</span>
-        <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
-    `;
-
-    container.appendChild(row);
-
-    // Stelle sicher, dass die neue Zeile drag-and-drop-fähig ist
-    enableDragAndDrop();
-}
-
-function removeConfigRow(button) {
-    const row = button.closest(".config-item");
-    row.remove();
-}
-
-
-function addPumpConfigRow() {
-    const container = document.getElementById("pump-config-list");
-    const newItem = document.createElement("div");
-    newItem.className = "config-item";
-    newItem.innerHTML = `
-        <input type="text" class="config-name" placeholder="Getränk" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
-        <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
-    `;
-    container.a
-        ppendChild(newItem);
-}
-
-function renderPumpConfig(config) {
-    const pumpContainer = document.getElementById("pump-config-list");
-    pumpContainer.innerHTML = ""; // Bestehende Pumpen löschen
-
-    for (let i = 1; i <= 4; i++) {
-        const pumpDrink = config[`pump${i}`] || "";
-        const pumpRow = document.createElement("div");
-        pumpRow.className = "config-item";
-        pumpRow.innerHTML = `
-            <span>Pumpe ${i}:</span>
-            <input type="text" class="config-name" value="${pumpDrink}" placeholder="Getränk" disabled>
-        `;
-        pumpContainer.appendChild(pumpRow);
-    }
-}
-        
-        
-function enableDragAndDrop() {
-    const list = document.querySelector(".config-list");
-
-    list.removeEventListener("dragover", handleDragOver);
-    list.addEventListener("dragover", handleDragOver);
-
-    const items = document.querySelectorAll(".config-item");
-    items.forEach(item => {
-        const dragHandle = item.querySelector(".config-drag");
-        if (!dragHandle) return;
-
-        dragHandle.addEventListener("dragstart", handleDragStart);
-        dragHandle.addEventListener("dragend", handleDragEnd);
-
-        // Sicherstellen, dass die gesamte Zeile nicht draggable ist
-        item.draggable = false;
-        dragHandle.draggable = true; // Nur das Symbol ist draggable
-    });
-}
-
-function handleDragStart(e) {
-    const item = e.target.closest(".config-item");
-    e.dataTransfer.setData("text/plain", item.dataset.index || ""); // Setze optional einen Index
-    item.classList.add("dragging");
-}
-
-function handleDragEnd(e) {
-    const item = e.target.closest(".config-item");
-    item.classList.remove("dragging");
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    const list = e.currentTarget;
-    const afterElement = getDragAfterElement(list, e.clientY);
-    const dragging = document.querySelector(".dragging");
-
-    if (!dragging) return; // Keine Aktion, falls nichts gezogen wird
-    if (afterElement == null) {
-        list.appendChild(dragging);
-    } else {
-        list.insertBefore(dragging, afterElement);
-    }
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-}
-
-function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll(".config-item:not(.dragging)")];
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
+        function removeConfigRow(button) {
+            const row = button.closest(".config-item");
+            row.remove();
         }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
 
-        
+        function enableDragAndDrop() {
+            const list = document.querySelector(".config-list");
+            list.removeEventListener("dragover", handleDragOver);
+            list.addEventListener("dragover", handleDragOver);
+
+            const items = document.querySelectorAll(".config-item");
+            items.forEach(item => {
+                const dragHandle = item.querySelector(".config-drag");
+                if (!dragHandle) return;
+                dragHandle.addEventListener("dragstart", handleDragStart);
+                dragHandle.addEventListener("dragend", handleDragEnd);
+                item.draggable = false;
+                dragHandle.draggable = true;
+            });
+        }
+
+        function handleDragStart(e) {
+            const item = e.target.closest(".config-item");
+            e.dataTransfer.setData("text/plain", "");
+            item.classList.add("dragging");
+        }
+
+        function handleDragEnd(e) {
+            const item = e.target.closest(".config-item");
+            item.classList.remove("dragging");
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const list = e.currentTarget;
+            const afterElement = getDragAfterElement(list, e.clientY);
+            const dragging = document.querySelector(".dragging");
+            if (!dragging) return;
+            if (afterElement == null) {
+                list.appendChild(dragging);
+            } else {
+                list.insertBefore(dragging, afterElement);
+            }
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll(".config-item:not(.dragging)")];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
-    enableDragAndDrop();
-});
-
+            enableDragAndDrop();
+        });
 
     </script>
 </head>
@@ -420,7 +359,7 @@ function getDragAfterElement(container, y) {
             <h2>Getränkekonfiguration</h2>
             <div class="config-list" id="drink-config-list">
                 {% for name, position in config.items() %}
-                {% if name != "pour_time" and not name.startswith("pump") and name != "pump_time" and name != "pumpen" %}
+                {% if name != "pour_time" and not name.startswith("pump") %}
                 <div class="config-item">
                     <input type="text" class="config-name" value="{{ name }}" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
                     <input type="number" class="config-position" value="{{ position }}" placeholder="Position in mm">
@@ -430,8 +369,6 @@ function getDragAfterElement(container, y) {
                 {% endif %}
                 {% endfor %}
             </div>
-
-            <!-- Button zum Hinzufügen neuer Getränke -->
             <div class="add-config">
                 <button onclick="addDrinkConfigRow()">Getränk hinzufügen</button>
             </div>
@@ -440,26 +377,22 @@ function getDragAfterElement(container, y) {
         <!-- Pumps Configuration Section -->
         <section class="config-section">
             <h2>Pumpen-Konfiguration</h2>
+            <p>Für jede Pumpe den Getränkenamen, die Zeit für 1 cl (in ms) und die Position in mm einstellen.</p>
 
-            <!-- Globale Einstellungen für Pumpen -->
-            <div class="pour-time-container">
-                <label for="pump-time">Zeit für 1 cl (in ms):</label>
-                <input type="number" id="pump-time" value="{{ config.pump_time }}" placeholder="1000">
+            {% for i in range(1, 5) %}
+            <div class="config-item">
+                <span>Pumpe {{ i }} Getränk:</span>
+                <input type="text" class="config-name" id="pump{{ i }}_drink" value="{{ config['pump' ~ i] or '' }}" placeholder="Getränk">
             </div>
-            <div class="pour-time-container">
-                <label for="pump-position">Position in mm:</label>
-                <input type="number" id="pump-position" value="{{ config.pumpen }}" placeholder="Position in mm">
+            <div class="config-item">
+                <span>Pumpe {{ i }} Zeit für 1 cl (ms):</span>
+                <input type="number" class="config-position" id="pump{{ i }}_time" value="{{ config['pump' ~ i ~ '_time'] or '1000' }}" placeholder="1000">
             </div>
-
-            <!-- Liste der Pumpen (durchnummeriert und nicht dragbar) -->
-            <div class="config-list" id="pump-config-list">
-                {% for i in range(1, 5) %}
-                <div class="config-item">
-                    <span>Pumpe {{ i }}:</span>
-                    <input type="text" class="config-name" value="{{ config['pump' ~ i] }}">
-                </div>
-                {% endfor %}
+            <div class="config-item">
+                <span>Pumpe {{ i }} Position (mm):</span>
+                <input type="number" class="config-position" id="pump{{ i }}_position" value="{{ config['pump' ~ i ~ '_position'] or '250' }}" placeholder="250">
             </div>
+            {% endfor %}
         </section>
 
         <!-- Save Button -->
@@ -473,5 +406,4 @@ function getDragAfterElement(container, y) {
     
     <div id="snackbar" class="snackbar"></div>
 </body>
-
 </html>
