@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Konfiguration verwalten</title>
     <style>
-    /* CSS wie gehabt, unverändert */
     body {
         font-family: 'Arial', sans-serif;
         background-color: #f5f5f5;
@@ -13,25 +12,31 @@
         margin: 0;
         padding: 0;
     }
+
     header {
         background-color: #007bff;
         color: white;
         padding: 20px;
         text-align: center;
     }
+
     header h1 {
         margin: 0;
         font-size: 24px;
     }
+
     main {
         padding: 20px;
         max-width: 900px;
         margin: 0 auto;
+        box-sizing: border-box;
     }
+
     nav {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
     }
+
     nav button {
         background-color: #007bff;
         color: white;
@@ -40,129 +45,220 @@
         padding: 10px 20px;
         font-size: 16px;
         cursor: pointer;
+        margin-right: 5px;
     }
+
     nav button:hover {
         background-color: #0056b3;
     }
+
     .config-section {
-        margin-bottom: 30px;
+        margin-bottom: 40px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        padding: 20px;
+        max-width: 700px; /* Schmaler, um zentrierter zu wirken */
+        margin: 0 auto; /* Zentriert den Abschnitt */
     }
+
     .config-section h2 {
         font-size: 20px;
         color: #333;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        margin-top: 0;
+        text-align:left;
     }
+
+    .config-section p {
+        color: #555;
+        font-size: 14px;
+        margin-bottom: 20px;
+        text-align:left;
+    }
+
     .pour-time-container {
         display: flex;
         align-items: center;
         gap: 10px;
         margin-bottom: 20px;
     }
+
+    .pour-time-container label {
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
     .pour-time-container input {
-        width: 100px;
+        width: 120px;
         padding: 8px;
         font-size: 14px;
         border: 1px solid #ccc;
         border-radius: 5px;
         text-align: right;
     }
+
     .config-list {
         list-style: none;
         padding: 0;
         margin: 0;
     }
+
     .config-item {
         display: flex;
         align-items: center;
-        justify-content: space-between; 
-        background-color: white;
-        padding: 10px 15px;
+        background-color: #fafafa;
         border: 1px solid #ccc;
         border-radius: 8px;
         margin-bottom: 10px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 10px;
+        gap: 10px;
+        flex-wrap: wrap; /* Zeilenumbruch bei schmalen Bildschirmen */
+        justify-content: space-between;
     }
-    .config-item.dragging {
-        background-color: #e0e0e0; 
-        transform: scale(1.05); 
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
-        transition: background-color 0.2s, transform 0.2s; 
-    }
-    .config-name {
-        width: 45%;
+
+    .config-item input.config-name {
+        width: 120px;
+        min-width: 120px;
         padding: 8px;
-        margin-right: 10px;
         border: 1px solid #ccc;
         border-radius: 5px;
         font-size: 14px;
     }
-    .config-position {
-        width: 20%;
-        padding: 8px;
-        margin-right: 10px;
+
+    .config-item input.config-position {
+        width: 80px;
+        min-width: 80px;
+        padding:8px;
         border: 1px solid #ccc;
-        border-radius: 5px;
-        font-size: 14px;
-        text-align: right;
+        border-radius:5px;
+        font-size:14px;
+        text-align:right;
     }
+
     .config-drag {
-      cursor: grab;
-      color: #666;
-      font-size: 18px;
-      user-select: none;
+        cursor: grab;
+        color: #666;
+        font-size: 18px;
+        user-select: none;
+        margin-left: auto; 
     }
-    .config-drag:active {
-      cursor: grabbing;
-    }
+
     .config-item button {
         background-color: #dc3545;
         color: white;
         border: none;
         border-radius: 5px;
-        padding: 5px 10px;
+        padding: 5px 12px;
         font-size: 14px;
         cursor: pointer;
     }
+
     .config-item button:hover {
         background-color: #c82333;
     }
+
+    .calibrate-button {
+        background-color: #6c757d;
+        color:white;
+        border:none;
+        border-radius:5px;
+        padding:5px 12px;
+        cursor:pointer;
+        font-size:14px;
+    }
+
+    .calibrate-button:hover {
+        background-color: #5a6268;
+    }
+
     .add-config {
         text-align: center;
         margin-top: 20px;
     }
+
     .add-config button {
         background-color: #007bff;
         color: white;
         border: none;
         border-radius: 5px;
-        padding: 10px 20px;
+        padding: 8px 20px;
         font-size: 16px;
         cursor: pointer;
     }
+
     .add-config button:hover {
         background-color: #0056b3;
     }
+
+    .pump-section {
+        border-top:1px solid #ccc;
+        padding-top:20px;
+        margin-top:20px;
+    }
+
+    .pump-group {
+        display:flex;
+        flex-direction:column;
+        gap:20px;
+    }
+
+    .pump-item {
+        display: flex;
+        flex-wrap: wrap;
+        gap:10px;
+        align-items:center;
+        background: #fafafa;
+        padding:10px 15px;
+        border:1px solid #ccc;
+        border-radius:8px;
+        justify-content: flex-start;
+    }
+
+    .pump-item label {
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .pump-item input {
+        width: 150px;
+        padding:8px;
+        border:1px solid #ccc;
+        border-radius:5px;
+    }
+
+    .pump-cfg {
+        display:flex;
+        flex-wrap: wrap;
+        align-items:center;
+        gap:10px;
+    }
+
     .save-button {
         text-align: center;
-        margin-top: 20px;
+        margin-top: 30px;
     }
+
     .save-button button {
         background-color: #28a745;
         color: white;
-        padding: 10px 20px;
+        padding: 10px 30px;
         border: none;
         border-radius: 5px;
         font-size: 16px;
         cursor: pointer;
     }
+
     .save-button button:hover {
         background-color: #218838;
     }
+
     footer {
         margin-top: 20px;
         text-align: center;
         font-size: 14px;
         color: #666;
+        padding-bottom:20px;
     }
 
     .snackbar {
@@ -184,14 +280,17 @@
         opacity: 0; 
         transition: opacity 0.3s ease, bottom 0.3s ease;
     }
+
     .snackbar.show {
         visibility: visible;
         opacity: 1; 
         bottom: 50px; 
     }
+
     .snackbar.error {
         background-color: #f44336; 
     }
+
     .snackbar.success {
         background-color: #4caf50; 
     }
@@ -204,7 +303,6 @@
             snackbar.className = "snackbar"; 
             snackbar.classList.add(type); 
             snackbar.classList.add("show"); 
-
             setTimeout(() => {
                 snackbar.classList.remove("show");
             }, 3000);
@@ -263,10 +361,11 @@
             const row = document.createElement("div");
             row.className = "config-item"; 
             row.innerHTML = `
-                <input type="text" class="config-name" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
-                <input type="number" class="config-position" placeholder="Position in mm">
+                <input type="text" class="config-name" placeholder="Getränk">
+                <input type="number" class="config-position" placeholder="Position mm">
                 <span class="config-drag" draggable="true">☰</span>
                 <button onclick="removeConfigRow(this)" class="remove-btn">Entfernen</button>
+                <a class="calibrate-button" href="#">Kalibrieren</a>
             `;
             container.appendChild(row);
             enableDragAndDrop();
@@ -279,6 +378,8 @@
 
         function enableDragAndDrop() {
             const list = document.querySelector(".config-list");
+            if(!list) return;
+
             list.removeEventListener("dragover", handleDragOver);
             list.addEventListener("dragover", handleDragOver);
 
@@ -333,7 +434,6 @@
         document.addEventListener("DOMContentLoaded", () => {
             enableDragAndDrop();
         });
-
     </script>
 </head>
 <body>
@@ -347,52 +447,58 @@
 
         <!-- Pour Time Section -->
         <section class="config-section">
-            <h2>Pour Time (für 2cl)</h2>
+            <h2>Pour Time</h2>
+            <p>Die Pour Time ist die Zeit in Millisekunden, die benötigt wird, um 2 cl auszugießen. Sie wird als Referenz für sämtliche Ausgießvorgänge verwendet.</p>
             <div class="pour-time-container">
-                <label for="pour-time-value">Pour Time:</label>
+                <label for="pour-time-value">Pour Time (2cl):</label>
                 <input type="number" id="pour-time-value" value="{{ config.pour_time }}" placeholder="2000">
             </div>
         </section>
 
         <!-- Drinks Configuration Section -->
         <section class="config-section">
-            <h2>Getränkekonfiguration</h2>
+            <h2>Getränke</h2>
+            <p>Legen Sie hier fest, wo sich jedes Getränk auf der Plattform befindet. Die Plattform wird zu dieser Position gefahren, um das Getränk zu entnehmen.</p>
             <div class="config-list" id="drink-config-list">
                 {% for name, position in config.items() %}
                 {% if name != "pour_time" and not name.startswith("pump") %}
                 <div class="config-item">
-                    <input type="text" class="config-name" value="{{ name }}" placeholder="Name" pattern="[a-zA-Z0-9_]+" title="Nur Buchstaben, Zahlen und Unterstriche erlaubt.">
-                    <input type="number" class="config-position" value="{{ position }}" placeholder="Position in mm">
+                    <input type="text" class="config-name" value="{{ name }}" placeholder="Getränk">
+                    <input type="number" class="config-position" value="{{ position }}" placeholder="Position mm">
                     <span class="config-drag" draggable="true">☰</span>
                     <button onclick="removeConfigRow(this)">Entfernen</button>
+                    <a class="calibrate-button" href="/calibrate?item={{ name }}">Kalibrieren</a>
                 </div>
                 {% endif %}
                 {% endfor %}
             </div>
+
             <div class="add-config">
                 <button onclick="addDrinkConfigRow()">Getränk hinzufügen</button>
             </div>
         </section>
 
         <!-- Pumps Configuration Section -->
-        <section class="config-section">
-            <h2>Pumpen-Konfiguration</h2>
-            <p>Für jede Pumpe den Getränkenamen, die Zeit für 1 cl (in ms) und die Position in mm einstellen.</p>
+        <section class="config-section pump-section">
+            <h2>Pumpen</h2>
+            <p>Weisen Sie jeder Pumpe ein Getränk zu. Definieren Sie zusätzlich die Zeit in Millisekunden für 1 cl sowie die Position der Plattform, um diese Pumpe anzufahren.</p>
+            
+            <div class="pump-group">
+                {% for i in range(1, 5) %}
+                <div class="pump-item">
+                    <label>Pumpe {{ i }} Getränk:</label>
+                    <input type="text" class="config-name" id="pump{{ i }}_drink" value="{{ config['pump' ~ i] or '' }}" placeholder="Getränk">
+                    <a class="calibrate-button" href="/calibrate?item=pump{{ i }}">Kalibrieren</a>
+                </div>
+                <div class="pump-item pump-cfg">
+                    <label>Zeit (1cl, ms):</label>
+                    <input type="number" class="config-position" id="pump{{ i }}_time" value="{{ config['pump' ~ i ~ '_time'] or '1000' }}" placeholder="1000">
 
-            {% for i in range(1, 5) %}
-            <div class="config-item">
-                <span>Pumpe {{ i }} Getränk:</span>
-                <input type="text" class="config-name" id="pump{{ i }}_drink" value="{{ config['pump' ~ i] or '' }}" placeholder="Getränk">
+                    <label>Position (mm):</label>
+                    <input type="number" class="config-position" id="pump{{ i }}_position" value="{{ config['pump' ~ i ~ '_position'] or '250' }}" placeholder="250">
+                </div>
+                {% endfor %}
             </div>
-            <div class="config-item">
-                <span>Pumpe {{ i }} Zeit für 1 cl (ms):</span>
-                <input type="number" class="config-position" id="pump{{ i }}_time" value="{{ config['pump' ~ i ~ '_time'] or '1000' }}" placeholder="1000">
-            </div>
-            <div class="config-item">
-                <span>Pumpe {{ i }} Position (mm):</span>
-                <input type="number" class="config-position" id="pump{{ i }}_position" value="{{ config['pump' ~ i ~ '_position'] or '250' }}" placeholder="250">
-            </div>
-            {% endfor %}
         </section>
 
         <!-- Save Button -->
