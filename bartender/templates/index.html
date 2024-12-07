@@ -909,16 +909,18 @@ async function startCustomConfigRecipe() {
     <nav>
         <button onclick="window.location.href='/rezepte'">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
-                <path d="M5 3v1h6V3H5zM4 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4z"/>
-                <path d="M5 5h6v1H5V5zM5 7h6v5H5V7z"/>
-            </svg>
+  <path d="M5 8h6v1H5V8zM5 5h6v1H5V5z"/>
+  <path d="M14 4h1V3h-1V2a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9h1V8h-1V4z"/>
+</svg>
+
             Rezepte verwalten
         </button>
         <button onclick="window.location.href='/config'">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319..."/>
-            </svg>
+  <path d="M8 4a3 3 0 1 1 0 8 3 3 0 0 1 0-8z"/>
+  <path d="M8 0a1 1 0 0 1 .993.883L9 1v1.05c.326.07.64.177.935.317l.708-.708A1 1 0 0 1 12.414.586l.708.708a1 1 0 0 1 0 1.414l-.708.708c.14.295.247.61.317.935H15a1 1 0 0 1 .993.883L16 6v1a1 1 0 0 1-.883.993L15 8h-1.05a5.022 5.022 0 0 1-.317.935l.708.708a1 1 0 0 1-1.414 1.414l-.708-.708c-.295.14-.61.247-.935.317V15a1 1 0 0 1-.883.993L8 16H7a1 1 0 0 1-.993-.883L6 15v-1.05a5.022 5.022 0 0 1-.935-.317l-.708.708a1 1 0 0 1-1.414-1.414l.708-.708A5.022 5.022 0 0 1 1.05 9H0a1 1 0 0 1-.993-.883L0 8V7a1 1 0 0 1 .883-.993L1 6h1.05c.07-.326.177-.64.317-.935l-.708-.708A1 1 0 0 1 2.586.586l.708.708c.295-.14.61-.247.935-.317V1a1 1 0 0 1 .883-.993L5 0h1h1z"/>
+</svg>
+
             Konfiguration verwalten
         </button>
     </nav>
@@ -935,8 +937,9 @@ async function startCustomConfigRecipe() {
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-                        <path d="M11.596 8.697l-6.363 3.692A.75.75 0 0 1 4 11.692V4.308a.75.75 0 0 1..."/>
-                    </svg>
+  <path d="M11.596 8.697l-6.363 3.692A.75.75 0 0 1 4 11.692V4.308a.75.75 0 0 1 1.233-.604l6.363 3.692a.75.75 0 0 1 0 1.301z"/>
+</svg>
+
                     Starten
                 </button>
             </div>
@@ -954,8 +957,10 @@ async function startCustomConfigRecipe() {
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                        <path d="M16 8s-3-5.5-8-5.5S0 8..."/>
-                    </svg>
+  <path d="M16 8c0-1.7-3.6-5.5-8-5.5S0 6.3 0 8s3.6 5.5 8 5.5S16 9.7 16 8z"/>
+  <path d="M8 5.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+</svg>
+
                     Details anzeigen
                 </button>
                 <div id="reasons-{{ loop.index }}" style="display:none;">
@@ -978,8 +983,9 @@ async function startCustomConfigRecipe() {
     <div class="toggle-manual">
         <button onclick="toggleManualControl()">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tools" viewBox="0 0 16 16">
-                <path d="M1 0a.5.5 0..."/>
-            </svg>
+  <path d="M1 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V1a.5.5 0 0 1-.5.5H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15H4v.5a.5.5 0 0 1-1 0V15H2v.5a.5.5 0 0 1-1 0V15H.5a.5.5 0 0 1 0-1H1v-1H.5a.5.5 0 0 1 0-1H1V11H.5a.5.5 0 0 1 0-1H1V9H.5a.5.5 0 0 1 0-1H1V7H.5a.5.5 0 0 1 0-1H1V5H.5a.5.5 0 0 1 0-1H1V3H.5A.5.5 0 0 1 0 2.5V2a.5.5 0 0 1 .5-.5h0z"/>
+</svg>
+
             Manuelle Steuerung anzeigen/ausblenden
         </button>
     </div>
