@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -187,6 +184,24 @@
             font-weight: bold;
         }
 
+        /* Neue Konfigurations-Icon oben rechts */
+        .grid-item .config-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            color: #007bff;
+            background: #f1f1f1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
         .grid-item .letter {
             font-size: 48px;
             font-weight: bold;
@@ -229,8 +244,8 @@
         }
 
         #progress-container {
-            display: none; 
-            text-align: center; 
+            display: none;
+            text-align: center;
             margin-top: 20px;
         }
 
@@ -240,18 +255,18 @@
         }
 
         #progress-container div[style*="width: 100%;"] {
-            background-color: #ccc; 
-            border-radius: 10px; 
-            margin: 0 auto; 
-            height: 20px; 
+            background-color: #ccc;
+            border-radius: 10px;
+            margin: 0 auto;
+            height: 20px;
             max-width: 500px;
         }
 
         #progress-bar {
-            width: 0%; 
-            background-color: #28a745; 
-            height: 20px; 
-            border-radius: 10px; 
+            width: 0%;
+            background-color: #28a745;
+            height: 20px;
+            border-radius: 10px;
             transition: width 0.3s ease;
         }
 
@@ -316,10 +331,18 @@
         .modal ul {
             list-style: none;
             padding: 0;
+            text-align: left;
         }
 
         .modal ul li {
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            display:flex;
+            flex-direction:column;
+            gap:5px;
+        }
+
+        .modal ul li label {
+            font-weight:bold;
         }
 
         .modal .close-button {
@@ -329,6 +352,7 @@
             border-radius: 5px;
             padding: 5px 10px;
             cursor: pointer;
+            margin-top:10px;
         }
 
         .modal .close-button:hover {
@@ -347,9 +371,9 @@
         }
 
         .snackbar {
-            visibility: hidden; 
+            visibility: hidden;
             min-width: 300px;
-            max-width: 90%; 
+            max-width: 90%;
             background-color: #333;
             color: #fff;
             text-align: center;
@@ -357,18 +381,18 @@
             padding: 16px 20px;
             position: fixed;
             z-index: 1000;
-            left: 50%; 
+            left: 50%;
             bottom: 30px;
             transform: translateX(-50%);
             font-size: 16px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            opacity: 0; 
+            opacity: 0;
             transition: opacity 0.3s ease, bottom 0.3s ease;
         }
 
         .snackbar.show {
             visibility: visible;
-            opacity: 1; 
+            opacity: 1;
             bottom: 50px;
         }
 
@@ -403,13 +427,160 @@
         .toggle-manual button:hover {
             background-color: #0056b3;
         }
+
+        /* Modal für Custom Konfiguration */
+        #custom-config-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            width: 300px;
+        }
+
+        #custom-config-modal h3 {
+            margin-bottom: 15px;
+            text-align:center;
+        }
+
+        #custom-config-modal ul {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+
+        #custom-config-modal ul li {
+            margin-bottom: 15px;
+        }
+
+        #custom-config-modal ul li label {
+            font-weight: bold;
+            display:block;
+            margin-bottom:5px;
+        }
+
+        #custom-config-modal ul li input[type=range] {
+            width: 100%;
+        }
+
+        #custom-config-modal-buttons {
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            margin-top:20px;
+        }
+
+        #custom-config-modal-buttons button {
+            flex:1;
+            border:none;
+            border-radius:5px;
+            padding:8px;
+            cursor:pointer;
+            font-size:14px;
+            text-align:center;
+        }
+
+        #custom-config-modal-cancel {
+            background-color:#dc3545;
+            color:white;
+        }
+
+        #custom-config-modal-cancel:hover {
+            background-color:#c82333;
+        }
+
+        #custom-config-modal-start {
+            background-color:#28a745;
+            color:white;
+        }
+
+        #custom-config-modal-start:hover {
+            background-color:#218838;
+        }
+
+        #custom-config-overlay {
+            display: none;
+            position: fixed;
+            top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,0.5);
+            z-index:1999;
+        }
+
+        .config-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            color: #007bff;
+            background: #f1f1f1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+        }
     </style>
 <script>
+
+let espConnected = false;
+let progressInterval;
+let currentCustomIngredients = []; // Für die momentan angezeigte config
+
+function updateESPStatus() {
+    fetch("/esp_status")
+        .then(response => response.json())
+        .then(data => {
+            espConnected = data.connected;
+            const statusElement = document.getElementById("esp-status");
+
+            if (data.connected) {
+                statusElement.innerHTML = `
+                    <span class="status connected">
+                        <span class="indicator"></span> ESP verbunden
+                    </span>`;
+            } else {
+                statusElement.innerHTML = `
+                    <span class="status disconnected">
+                        <span class="indicator"></span> ESP nicht verbunden
+                    </span>`;
+            }
+        })
+        .catch(error => {
+            console.error("Fehler beim Abrufen des ESP-Status:", error);
+            espConnected = false;
+            const statusElement = document.getElementById("esp-status");
+            statusElement.innerHTML = `
+                <span class="status disconnected">
+                    <span class="indicator"></span> ESP nicht verbunden
+                </span>`;
+        });
+}
+
+setInterval(updateESPStatus, 5000);
+updateESPStatus();
+
+function showSnackbar(message, type = "success") {
+    const snackbar = document.getElementById("snackbar");
+    snackbar.textContent = message;
+    snackbar.className = "snackbar";
+    snackbar.classList.add(type);
+    snackbar.classList.add("show");
+    setTimeout(() => {
+        snackbar.classList.remove("show");
+    }, 3000);
+}
 
 async function startRecipe(recipeName) {
     if (!espConnected) {
         showSnackbar("ESP ist nicht verbunden. Bitte überprüfen Sie die Verbindung.", "error");
-        return; // Rezeptstart abbrechen
+        return;
     }
 
     try {
@@ -422,7 +593,7 @@ async function startRecipe(recipeName) {
 
         if (response.ok) {
             showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`, "success");
-            startProgressTracking(); // Fortschrittsanzeige starten
+            startProgressTracking();
         } else {
             throw new Error(result.message || "Fehler beim Starten des Rezepts");
         }
@@ -431,21 +602,20 @@ async function startRecipe(recipeName) {
     }
 }
 
-
-    function showInvalidReasons(recipeId) {
-        const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
-        if (!reasonsDiv) {
-            showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
-            return;
-        }
-
-        const reasons = reasonsDiv.textContent.trim();
-        if (reasons) {
-            alert("Fehlende Drinks:\n" + reasons);
-        } else {
-            showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
-        }
+function showInvalidReasons(recipeId) {
+    const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
+    if (!reasonsDiv) {
+        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
+        return;
     }
+
+    const reasons = reasonsDiv.textContent.trim();
+    if (reasons) {
+        alert("Fehlende Drinks:\n" + reasons);
+    } else {
+        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
+    }
+}
 
 async function sendManualCommand() {
     const commandType = document.getElementById("manualCommandType").value;
@@ -461,10 +631,8 @@ async function sendManualCommand() {
         try {
             const response = await fetch("/send_command", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ type: commandType, pump: pumpNumber, value: value }) // Korrigierter Schlüssel
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: commandType, pump: pumpNumber, value: value })
             });
 
             const result = await response.json();
@@ -505,25 +673,19 @@ async function sendManualCommand() {
     }
 }
 
-    function toggleManualControl() {
-        const form = document.querySelector("form");
-        form.style.display = form.style.display === "block" ? "none" : "block";
-    }
-
+function toggleManualControl() {
+    const form = document.querySelector("form");
+    form.style.display = form.style.display === "block" ? "none" : "block";
+}
 
 async function fetchRecipeContent(recipeName) {
     try {
-        console.log(`Rezeptname für Anfrage: ${recipeName}`); // Debugging des Rezeptnamens
-
         const response = await fetch(`/get_recipe_content?name=${encodeURIComponent(recipeName)}`);
-        console.log(`Antwortstatus: ${response.status}`);
         if (!response.ok) {
             throw new Error(`Fehler beim Laden des Rezepts: ${response.statusText}`);
         }
 
         const recipeContent = await response.text();
-        console.log(`Geladener Rezeptinhalt (${recipeName}):`, recipeContent);
-
         if (!recipeContent.trim()) {
             showSnackbar(`Das Rezept '${recipeName}' ist leer.`, "error");
             return;
@@ -536,42 +698,33 @@ async function fetchRecipeContent(recipeName) {
     }
 }
 
-
-
 function analyzeRecipe(recipeName, recipeContent) {
     const modal = document.getElementById("drink-details-modal");
     const overlay = document.getElementById("modal-overlay");
     const detailsList = document.getElementById("recipe-details-list");
 
-    console.log(`Analyziere Rezept '${recipeName}':`, recipeContent);
-
-    // Überprüfen, ob Rezeptinhalt vorhanden ist
-    if (!recipeContent || recipeContent.trim() === "") {
+    if (!recipeContent.trim()) {
         showSnackbar(`Das Rezept '${recipeName}' enthält keine Inhalte.`, "error");
         return;
     }
 
-    // Rezeptinhalt verarbeiten
-    const lines = recipeContent.split(/\r?\n/); // Unterstützung für Windows und Unix-Zeilenumbrüche
+    const lines = recipeContent.split(/\r?\n/);
     const ingredientAmounts = {};
     let currentIngredient = null;
 
     lines.forEach(line => {
         line = line.trim();
         if (line.startsWith("move")) {
-            currentIngredient = line.split(" ")[1]; // Extrahiere Zutat
-            console.log(`Gefundene Zutat: ${currentIngredient}`);
+            currentIngredient = line.split(" ")[1];
         } else if (line.startsWith("servo cl") && currentIngredient) {
             const amount = parseFloat(line.split(" ")[2]);
             if (!ingredientAmounts[currentIngredient]) {
                 ingredientAmounts[currentIngredient] = 0;
             }
-            ingredientAmounts[currentIngredient] += amount; // Summiere Menge
-            console.log(`Zutat '${currentIngredient}': +${amount} cl`);
+            ingredientAmounts[currentIngredient] += amount;
         }
     });
 
-    // Zutaten anzeigen
     detailsList.innerHTML = "";
     if (Object.keys(ingredientAmounts).length === 0) {
         detailsList.innerHTML = "<li>Zutaten nicht verfügbar</li>";
@@ -583,7 +736,6 @@ function analyzeRecipe(recipeName, recipeContent) {
         }
     }
 
-    // Modal anzeigen
     modal.querySelector("h3").textContent = `Rezept für ${recipeName}`;
     modal.style.display = "block";
     overlay.style.display = "block";
@@ -595,41 +747,6 @@ function closeDrinkDetails() {
     modal.style.display = "none";
     overlay.style.display = "none";
 }
-
-let espConnected = false;
-
-function updateESPStatus() {
-    fetch("/esp_status")
-        .then(response => response.json())
-        .then(data => {
-            espConnected = data.connected; // Aktualisiere den Verbindungsstatus
-            const statusElement = document.getElementById("esp-status");
-
-            if (data.connected) {
-                statusElement.innerHTML = `
-                    <span class="status connected">
-                        <span class="indicator"></span> ESP verbunden
-                    </span>`;
-            } else {
-                statusElement.innerHTML = `
-                    <span class="status disconnected">
-                        <span class="indicator"></span> ESP nicht verbunden
-                    </span>`;
-            }
-        })
-        .catch(error => {
-            console.error("Fehler beim Abrufen des ESP-Status:", error);
-            espConnected = false; // Bei Fehler Verbindung als getrennt markieren
-            const statusElement = document.getElementById("esp-status");
-            statusElement.innerHTML = `
-                <span class="status disconnected">
-                    <span class="indicator"></span> ESP nicht verbunden
-                </span>`;
-        });
-}
-
-    
-    let progressInterval;
 
 async function fetchProgress() {
     try {
@@ -654,7 +771,7 @@ async function fetchProgress() {
 
 function startProgressTracking() {
     document.getElementById("progress-container").style.display = "block";
-    progressInterval = setInterval(fetchProgress, 1000); // Alle 1 Sekunde
+    progressInterval = setInterval(fetchProgress, 1000);
 }
 
 function togglePumpOptions() {
@@ -667,28 +784,100 @@ function togglePumpOptions() {
     }
 }
 
+/* Neue Funktionen für Custom-Konfiguration */
 
-    function showSnackbar(message, type = "success") {
-        const snackbar = document.getElementById("snackbar");
-        snackbar.textContent = message; // Setzt den Text der Snackbar
-        snackbar.className = "snackbar"; // Standardstil
-        snackbar.classList.add(type); // Fügt Erfolg- oder Fehlerstil hinzu
-        snackbar.classList.add("show"); // Snackbar anzeigen
+let currentRecipeForConfig = "";
 
-        // Nach 3 Sekunden ausblenden
-        setTimeout(() => {
-            snackbar.classList.remove("show");
-        }, 3000);
+async function openCustomConfig(recipeName) {
+    currentRecipeForConfig = recipeName;
+    try {
+        const response = await fetch(`/get_recipe_ingredients?recipe=${encodeURIComponent(recipeName)}`);
+        const result = await response.json();
+        if (result.status === "success") {
+            const ingredients = result.ingredients;
+            currentCustomIngredients = ingredients;
+            showCustomConfigModal(ingredients);
+        } else {
+            showSnackbar(result.message, "error");
+        }
+    } catch (error) {
+        showSnackbar("Fehler beim Laden der Rezeptzutaten.", "error");
     }
+}
 
-// Initiale Statusabfrage
-updateESPStatus();
+function showCustomConfigModal(ingredients) {
+    const overlay = document.getElementById("custom-config-overlay");
+    const modal = document.getElementById("custom-config-modal");
+    const ul = modal.querySelector("ul");
+    ul.innerHTML = "";
 
-// Status alle 5 Sekunden aktualisieren
-setInterval(updateESPStatus, 5000);
+    ingredients.forEach(ing => {
+        const li = document.createElement("li");
+        const label = document.createElement("label");
+        label.textContent = `${ing.name}: `;
+        const spanVal = document.createElement("span");
+        spanVal.style.fontWeight = "normal";
+        spanVal.textContent = `${ing.amount.toFixed(1)} cl`;
+
+        const range = document.createElement("input");
+        range.type = "range";
+        range.min = "0";
+        range.max = (ing.amount * 1.5).toFixed(1);
+        range.step = "0.1";
+        range.value = ing.amount.toFixed(1);
+
+        range.addEventListener("input", () => {
+            spanVal.textContent = `${range.value} cl`;
+            ing.current = parseFloat(range.value);
+        });
+
+        li.appendChild(label);
+        li.appendChild(range);
+        li.appendChild(spanVal);
+
+        ul.appendChild(li);
+    });
+
+    overlay.style.display = "block";
+    modal.style.display = "block";
+}
+
+function closeCustomConfigModal() {
+    const overlay = document.getElementById("custom-config-overlay");
+    const modal = document.getElementById("custom-config-modal");
+    overlay.style.display = "none";
+    modal.style.display = "none";
+    currentCustomIngredients = [];
+    currentRecipeForConfig = "";
+}
+
+async function startCustomConfigRecipe() {
+    // Sende angepasste Mengen an Server
+    const data = {
+        recipe: currentRecipeForConfig,
+        ingredients: currentCustomIngredients.map(i => ({name:i.name, amount:i.current || i.amount}))
+    };
+
+    try {
+        const response = await fetch("/run_custom_recipe", {
+            method:"POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.status === "success") {
+            showSnackbar(`Rezept '${currentRecipeForConfig}' mit angepassten Mengen gestartet!`, "success");
+            startProgressTracking();
+            closeCustomConfigModal();
+        } else {
+            showSnackbar(result.message, "error");
+        }
+    } catch (error) {
+        showSnackbar("Fehler beim Starten des angepassten Rezepts.", "error");
+    }
+}
+
 </script>
-
-
 </head>
 <body>
 <header>
@@ -718,18 +907,17 @@ setInterval(updateESPStatus, 5000);
     </div>
 
     <nav>
-        <!-- Rezepte verwalten Button mit "journal-text" Icon -->
         <button onclick="window.location.href='/rezepte'">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
-                <path d="M5 3v1h6V3H5zM4 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4zm1 2h6v1H5V3zm0 2h6v1H5V5zm0 2h6v5H5V7z"/>
+                <path d="M5 3v1h6V3H5zM4 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4z"/>
+                <path d="M5 5h6v1H5V5zM5 7h6v5H5V7z"/>
             </svg>
             Rezepte verwalten
         </button>
-        <!-- Konfiguration verwalten Button mit "gear" Icon -->
         <button onclick="window.location.href='/config'">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
                 <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.5.5 0 0 1-.465.347H4.964c-1.326 0-2.428.97-2.653 2.245l-.056.3a.5.5 0 0 1-.347.405L1.236 5.358c-1.195.363-1.195 2.08 0 2.443l.319.094a.5.5 0 0 1 .347.405l.056.3c.225 1.275 1.327 2.245 2.653 2.245h.681a.5.5 0 0 1 .465.347l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.5.5 0 0 1 .465-.347h.681c1.326 0 2.428-.97 2.653-2.245l.056-.3a.5.5 0 0 1 .347-.405l.319-.094c1.195-.363 1.195-2.08 0-2.443l-.319-.094a.5.5 0 0 1-.347-.405l-.056-.3c-.225-1.275-1.327-2.245-2.653-2.245h-.681a.5.5 0 0 1-.465-.347l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319c.07.235.278.4.52.4h.681c.9 0 1.645.675 1.783 1.563l.056.3c.03.175.148.325.317.389l.319.094c.835.246.835 1.428 0 1.674l-.319.094a.5.5 0 0 0-.317.389l-.056.3c-.138.888-.883 1.563-1.783 1.563h-.681a.5.5 0 0 0-.52.4l-.094.319c-.246.835-1.428.835-1.674 0l-.094-.319a.5.5 0 0 0-.52-.4h-.681c-.9 0-1.645-.675-1.783-1.563l-.056-.3a.5.5 0 0 0-.317-.389l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094a.5.5 0 0 0 .317-.389l.056-.3c.138-.888.883-1.563 1.783-1.563h.681a.5.5 0 0 0 .52-.4l.094-.319z"/>
+                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319..."/>
             </svg>
             Konfiguration verwalten
         </button>
@@ -741,12 +929,13 @@ setInterval(updateESPStatus, 5000);
             {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
             <div class="grid-item valid">
                 <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+                <!-- Neue config-icon oben rechts -->
+                <div class="config-icon" onclick="openCustomConfig('{{ recipe.name }}')">⚙</div>
                 <div class="letter">{{ recipe.name[0] }}</div>
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <!-- Starten-Button mit Play-Icon -->
                 <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-                        <path d="M11.596 8.697l-6.363 3.692A.75.75 0 0 1 4 11.692V4.308a.75.75 0 0 1 1.233-.604l6.363 3.692a.75.75 0 0 1 0 1.301z"/>
+                        <path d="M11.596 8.697l-6.363 3.692A.75.75 0 0 1 4 11.692V4.308a.75.75 0 0 1..."/>
                     </svg>
                     Starten
                 </button>
@@ -763,10 +952,9 @@ setInterval(updateESPStatus, 5000);
                 <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
                 <div class="letter">{{ recipe.name[0] }}</div>
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <!-- Details anzeigen Button mit Eye-Icon -->
                 <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5 8-5.5 8-5.5zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
+                        <path d="M16 8s-3-5.5-8-5.5S0 8..."/>
                     </svg>
                     Details anzeigen
                 </button>
@@ -788,10 +976,9 @@ setInterval(updateESPStatus, 5000);
     </div>
 
     <div class="toggle-manual">
-        <!-- Manuelle Steuerung mit Werkzeug-Icon -->
         <button onclick="toggleManualControl()">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tools" viewBox="0 0 16 16">
-                <path d="M1 0a.5.5 0 0 1 .5.5V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1h1v-.5a.5.5 0 0 1 1 0V1a.5.5 0 0 1-.5.5h-1v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15H4v.5a.5.5 0 0 1-1 0V15H2v.5a.5.5 0 0 1-1 0V15H.5A.5.5 0 0 1 0 14.5v-1h1v-1H.5a.5.5 0 0 1 0-1H1v-1H.5a.5.5 0 0 1 0-1H1V8H.5a.5.5 0 0 1 0-1H1V6H.5a.5.5 0 0 1 0-1H1V4H.5a.5.5 0 0 1 0-1H1V2H.5A.5.5 0 0 1 0 1.5V1a.5.5 0 0 1 .5-.5Z"/>
+                <path d="M1 0a.5.5 0..."/>
             </svg>
             Manuelle Steuerung anzeigen/ausblenden
         </button>
@@ -817,6 +1004,17 @@ setInterval(updateESPStatus, 5000);
         <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
         <button type="submit">Befehl senden</button>
     </form>
+
+    <!-- Custom Config Modal -->
+    <div id="custom-config-overlay" style="display:none;"></div>
+    <div id="custom-config-modal">
+        <h3>Konfiguration anpassen</h3>
+        <ul></ul>
+        <div id="custom-config-modal-buttons">
+            <button id="custom-config-modal-cancel" onclick="closeCustomConfigModal()">Abbrechen</button>
+            <button id="custom-config-modal-start" onclick="startCustomConfigRecipe()">Starten</button>
+        </div>
+    </div>
 
 </main>
 
