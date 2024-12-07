@@ -97,7 +97,7 @@
 
         nav {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         nav button {
@@ -109,33 +109,10 @@
             font-size: 16px;
             cursor: pointer;
             margin: 5px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
         }
 
         nav button:hover {
             background-color: #0056b3;
-        }
-
-        .config-section {
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 40px;
-        }
-
-        .config-section h2 {
-            font-size: 20px;
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-
-        .config-section p {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 20px;
         }
 
         .grid-container {
@@ -184,7 +161,6 @@
             font-weight: bold;
         }
 
-        /* Neue Konfigurations-Icon oben rechts */
         .grid-item .config-icon {
             position: absolute;
             top: 10px;
@@ -226,9 +202,6 @@
             font-size: 14px;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
         }
 
         .start-button:hover {
@@ -241,33 +214,6 @@
             font-size: 14px;
             color: #666;
             padding-bottom: 20px;
-        }
-
-        #progress-container {
-            display: none;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        #progress-text {
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-
-        #progress-container div[style*="width: 100%;"] {
-            background-color: #ccc;
-            border-radius: 10px;
-            margin: 0 auto;
-            height: 20px;
-            max-width: 500px;
-        }
-
-        #progress-bar {
-            width: 0%;
-            background-color: #28a745;
-            height: 20px;
-            border-radius: 10px;
-            transition: width 0.3s ease;
         }
 
         form {
@@ -309,65 +255,55 @@
             background-color: #218838;
         }
 
-        .modal {
+        #progress-container {
             display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            width: 300px;
             text-align: center;
+            margin-top: 20px;
         }
 
-        .modal h3 {
-            margin-bottom: 15px;
+        #progress-text {
+            margin-bottom: 10px;
+            font-weight: bold;
         }
 
-        .modal ul {
-            list-style: none;
-            padding: 0;
-            text-align: left;
+        #progress-container div[style*="width: 100%;"] {
+            background-color: #ccc;
+            border-radius: 10px;
+            margin: 0 auto;
+            height: 20px;
+            max-width: 500px;
         }
 
-        .modal ul li {
-            margin-bottom: 12px;
-            display:flex;
-            flex-direction:column;
+        #progress-bar {
+            width: 0%;
+            background-color: #28a745;
+            height: 20px;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .toggle-manual {
+            margin-top: 30px;
+            text-align:center;
+        }
+
+        .toggle-manual button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            display:inline-flex;
+            align-items:center;
             gap:5px;
         }
 
-        .modal ul li label {
-            font-weight:bold;
-        }
-
-        .modal .close-button {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            margin-top:10px;
-        }
-
-        .modal .close-button:hover {
-            background-color: #c82333;
-        }
-
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
+        .toggle-manual button:hover {
+            background-color: #0056b3;
         }
 
         .snackbar {
@@ -404,68 +340,51 @@
             background-color: #4caf50;
         }
 
-        .toggle-manual {
-            margin-top: 30px;
-            text-align:center;
-        }
-
-        .toggle-manual button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 10px 30px;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            display:inline-flex;
-            align-items:center;
-            gap:5px;
-        }
-
-        .toggle-manual button:hover {
-            background-color: #0056b3;
-        }
-
-        /* Modal für Custom Konfiguration */
-        #custom-config-modal {
+        /* Overlay & Modal für Custom Config */
+        #custom-config-overlay {
             display: none;
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 2000;
-            width: 300px;
+            top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,0.5);
+            z-index:1999;
+        }
+
+        #custom-config-modal {
+            display:none;
+            position:fixed;
+            top:50%;left:50%;
+            transform:translate(-50%,-50%);
+            background:white;
+            border-radius:10px;
+            padding:20px;
+            box-shadow:0 4px 8px rgba(0,0,0,0.2);
+            z-index:2000;
+            width:300px;
+            text-align:center;
         }
 
         #custom-config-modal h3 {
-            margin-bottom: 15px;
-            text-align:center;
+            margin-bottom:15px;
         }
 
         #custom-config-modal ul {
-            list-style: none;
-            padding: 0;
-            text-align: left;
+            list-style:none;
+            padding:0;
+            text-align:left;
         }
 
         #custom-config-modal ul li {
-            margin-bottom: 15px;
+            margin-bottom:15px;
         }
 
         #custom-config-modal ul li label {
-            font-weight: bold;
+            font-weight:bold;
             display:block;
             margin-bottom:5px;
         }
 
         #custom-config-modal ul li input[type=range] {
-            width: 100%;
+            width:100%;
         }
 
         #custom-config-modal-buttons {
@@ -486,8 +405,7 @@
         }
 
         #custom-config-modal-cancel {
-            background-color:#dc3545;
-            color:white;
+            background-color:#dc3545; color:white;
         }
 
         #custom-config-modal-cancel:hover {
@@ -495,388 +413,379 @@
         }
 
         #custom-config-modal-start {
-            background-color:#28a745;
-            color:white;
+            background-color:#28a745; color:white;
         }
 
         #custom-config-modal-start:hover {
             background-color:#218838;
         }
 
-        #custom-config-overlay {
-            display: none;
-            position: fixed;
+        /* Modal für Zutaten-Übersicht (Rezeptinhalt modern) */
+        #recipe-content-overlay {
+            display:none;
+            position:fixed;
             top:0;left:0;width:100%;height:100%;
             background:rgba(0,0,0,0.5);
-            z-index:1999;
+            z-index:2001;
         }
 
-        .config-icon {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 18px;
-            cursor: pointer;
-            color: #007bff;
-            background: #f1f1f1;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display:flex;
-            justify-content:center;
-            align-items:center;
+        #recipe-content-modal {
+            display:none;
+            position:fixed;
+            top:50%;left:50%;
+            transform:translate(-50%,-50%);
+            background:white;
+            border-radius:10px;
+            padding:20px;
+            box-shadow:0 4px 8px rgba(0,0,0,0.2);
+            z-index:2002;
+            width:300px;
+            max-width:90%;
+            text-align:center;
         }
+
+        #recipe-content-modal h3 {
+            margin-top:0;
+            margin-bottom:15px;
+            text-align:center;
+        }
+
+        #recipe-content-modal ul {
+            list-style:none;
+            padding:0;
+            margin:0;
+            text-align:left;
+        }
+
+        #recipe-content-modal ul li {
+            background:#f5f5f5;
+            margin-bottom:10px;
+            padding:10px;
+            border-radius:5px;
+            display:flex;
+            justify-content:space-between;
+        }
+
+        #recipe-content-close {
+            background-color:#dc3545;
+            color:white;
+            border:none;
+            border-radius:5px;
+            padding:8px 16px;
+            cursor:pointer;
+            margin-top:15px;
+        }
+
+        #recipe-content-close:hover {
+            background-color:#c82333;
+        }
+
     </style>
 <script>
-
 let espConnected = false;
 let progressInterval;
-let currentCustomIngredients = []; // Für die momentan angezeigte config
+let currentCustomIngredients = [];
+let currentRecipeForConfig = "";
 
 function updateESPStatus() {
     fetch("/esp_status")
-        .then(response => response.json())
-        .then(data => {
-            espConnected = data.connected;
-            const statusElement = document.getElementById("esp-status");
-
-            if (data.connected) {
-                statusElement.innerHTML = `
+        .then(r=>r.json())
+        .then(data=>{
+            espConnected=data.connected;
+            const statusElement=document.getElementById("esp-status");
+            if(data.connected){
+                statusElement.innerHTML=`
                     <span class="status connected">
                         <span class="indicator"></span> ESP verbunden
                     </span>`;
             } else {
-                statusElement.innerHTML = `
+                statusElement.innerHTML=`
                     <span class="status disconnected">
                         <span class="indicator"></span> ESP nicht verbunden
                     </span>`;
             }
-        })
-        .catch(error => {
+        }).catch(error=>{
             console.error("Fehler beim Abrufen des ESP-Status:", error);
-            espConnected = false;
-            const statusElement = document.getElementById("esp-status");
-            statusElement.innerHTML = `
+            espConnected=false;
+            const statusElement=document.getElementById("esp-status");
+            statusElement.innerHTML=`
                 <span class="status disconnected">
                     <span class="indicator"></span> ESP nicht verbunden
                 </span>`;
         });
 }
 
-setInterval(updateESPStatus, 5000);
 updateESPStatus();
+setInterval(updateESPStatus,5000);
 
-function showSnackbar(message, type = "success") {
-    const snackbar = document.getElementById("snackbar");
-    snackbar.textContent = message;
-    snackbar.className = "snackbar";
+function showSnackbar(message,type="success"){
+    const snackbar=document.getElementById("snackbar");
+    snackbar.textContent=message;
+    snackbar.className="snackbar";
     snackbar.classList.add(type);
     snackbar.classList.add("show");
-    setTimeout(() => {
+    setTimeout(()=>{
         snackbar.classList.remove("show");
-    }, 3000);
+    },3000);
 }
 
 async function startRecipe(recipeName) {
-    if (!espConnected) {
-        showSnackbar("ESP ist nicht verbunden. Bitte überprüfen Sie die Verbindung.", "error");
+    if(!espConnected){
+        showSnackbar("ESP ist nicht verbunden.","error");
         return;
     }
 
-    try {
-        const response = await fetch("/run_recipe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recipe: recipeName }),
+    try{
+        const r=await fetch("/run_recipe",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({recipe:recipeName})
         });
-        const result = await response.json();
-
-        if (response.ok) {
-            showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`, "success");
+        const res=await r.json();
+        if(r.ok){
+            showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`,"success");
             startProgressTracking();
         } else {
-            throw new Error(result.message || "Fehler beim Starten des Rezepts");
+            throw new Error(res.message||"Fehler beim Starten des Rezepts");
         }
-    } catch (error) {
-        showSnackbar(error.message, "error");
+    }catch(e){
+        showSnackbar(e.message,"error");
     }
 }
 
-function showInvalidReasons(recipeId) {
-    const reasonsDiv = document.getElementById(`reasons-${recipeId}`);
-    if (!reasonsDiv) {
-        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
-        return;
-    }
-
-    const reasons = reasonsDiv.textContent.trim();
-    if (reasons) {
-        alert("Fehlende Drinks:\n" + reasons);
-    } else {
-        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
-    }
+function toggleManualControl(){
+    const form=document.querySelector("form");
+    form.style.display=form.style.display==="block"?"none":"block";
 }
 
-async function sendManualCommand() {
-    const commandType = document.getElementById("manualCommandType").value;
-    const value = parseInt(document.getElementById("manualValue").value);
+async function fetchProgress(){
+    try{
+        const r=await fetch("/recipe_progress");
+        const d=await r.json();
+        const progress=d.progress;
+        const progressBar=document.getElementById("progress-bar");
+        const progressText=document.getElementById("progress-text");
 
-    if (commandType === "pump") {
-        const pumpNumber = parseInt(document.getElementById("pumpNumber").value);
-        if (isNaN(value) || isNaN(pumpNumber)) {
-            showSnackbar("Bitte geben Sie eine gültige Pumpennummer und Dauer ein.", "error");
-            return;
-        }
+        progressBar.style.width=progress+"%";
+        progressText.textContent=`Fortschritt: ${progress}%`;
 
-        try {
-            const response = await fetch("/send_command", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: commandType, pump: pumpNumber, value: value })
-            });
-
-            const result = await response.json();
-            if (response.ok) {
-                showSnackbar(result.message, "success");
-            } else {
-                throw new Error(result.message || "Fehler beim Senden des Befehls.");
-            }
-        } catch (error) {
-            console.error("Fehler beim Senden des Pumpenbefehls:", error);
-            showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
-        }
-    } else {
-        if (!commandType || isNaN(value)) {
-            showSnackbar("Bitte geben Sie einen gültigen Befehl und Wert ein.", "error");
-            return;
-        }
-
-        try {
-            const response = await fetch("/send_command", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ type: commandType, value: value })
-            });
-
-            const result = await response.json();
-            if (response.ok) {
-                showSnackbar(result.message, "success");
-            } else {
-                throw new Error(result.message || "Fehler beim Senden des Befehls.");
-            }
-        } catch (error) {
-            console.error("Fehler beim Senden des Befehls:", error);
-            showSnackbar("Es gab ein Problem beim Senden des Befehls.", "error");
-        }
-    }
-}
-
-function toggleManualControl() {
-    const form = document.querySelector("form");
-    form.style.display = form.style.display === "block" ? "none" : "block";
-}
-
-async function fetchRecipeContent(recipeName) {
-    try {
-        const response = await fetch(`/get_recipe_content?name=${encodeURIComponent(recipeName)}`);
-        if (!response.ok) {
-            throw new Error(`Fehler beim Laden des Rezepts: ${response.statusText}`);
-        }
-
-        const recipeContent = await response.text();
-        if (!recipeContent.trim()) {
-            showSnackbar(`Das Rezept '${recipeName}' ist leer.`, "error");
-            return;
-        }
-
-        analyzeRecipe(recipeName, recipeContent);
-    } catch (error) {
-        console.error(`Fehler beim Abrufen des Rezepts:`, error);
-        showSnackbar(`Das Rezept '${recipeName}' konnte nicht geladen werden.`, "error");
-    }
-}
-
-function analyzeRecipe(recipeName, recipeContent) {
-    const modal = document.getElementById("drink-details-modal");
-    const overlay = document.getElementById("modal-overlay");
-    const detailsList = document.getElementById("recipe-details-list");
-
-    if (!recipeContent.trim()) {
-        showSnackbar(`Das Rezept '${recipeName}' enthält keine Inhalte.`, "error");
-        return;
-    }
-
-    const lines = recipeContent.split(/\r?\n/);
-    const ingredientAmounts = {};
-    let currentIngredient = null;
-
-    lines.forEach(line => {
-        line = line.trim();
-        if (line.startsWith("move")) {
-            currentIngredient = line.split(" ")[1];
-        } else if (line.startsWith("servo cl") && currentIngredient) {
-            const amount = parseFloat(line.split(" ")[2]);
-            if (!ingredientAmounts[currentIngredient]) {
-                ingredientAmounts[currentIngredient] = 0;
-            }
-            ingredientAmounts[currentIngredient] += amount;
-        }
-    });
-
-    detailsList.innerHTML = "";
-    if (Object.keys(ingredientAmounts).length === 0) {
-        detailsList.innerHTML = "<li>Zutaten nicht verfügbar</li>";
-    } else {
-        for (const [ingredient, amount] of Object.entries(ingredientAmounts)) {
-            const li = document.createElement("li");
-            li.textContent = `${ingredient}: ${amount.toFixed(1)} cl`;
-            detailsList.appendChild(li);
-        }
-    }
-
-    modal.querySelector("h3").textContent = `Rezept für ${recipeName}`;
-    modal.style.display = "block";
-    overlay.style.display = "block";
-}
-
-function closeDrinkDetails() {
-    const modal = document.getElementById("drink-details-modal");
-    const overlay = document.getElementById("modal-overlay");
-    modal.style.display = "none";
-    overlay.style.display = "none";
-}
-
-async function fetchProgress() {
-    try {
-        const response = await fetch("/recipe_progress");
-        const data = await response.json();
-        const progress = data.progress;
-
-        const progressBar = document.getElementById("progress-bar");
-        const progressText = document.getElementById("progress-text");
-
-        progressBar.style.width = progress + "%";
-        progressText.textContent = `Fortschritt: ${progress}%`;
-
-        if (progress >= 100) {
+        if(progress>=100){
             clearInterval(progressInterval);
             alert("Rezept abgeschlossen!");
         }
-    } catch (error) {
-        console.error("Fehler beim Abrufen des Fortschritts:", error);
+    }catch(e){
+        console.error("Fehler beim Abrufen des Fortschritts:", e);
     }
 }
 
-function startProgressTracking() {
-    document.getElementById("progress-container").style.display = "block";
-    progressInterval = setInterval(fetchProgress, 1000);
+function startProgressTracking(){
+    document.getElementById("progress-container").style.display="block";
+    progressInterval=setInterval(fetchProgress,1000);
 }
 
-function togglePumpOptions() {
-    const commandType = document.getElementById("manualCommandType").value;
-    const pumpOptions = document.getElementById("pumpOptions");
-    if (commandType === "pump") {
-        pumpOptions.style.display = "block";
+function togglePumpOptions(){
+    const commandType=document.getElementById("manualCommandType").value;
+    const pumpOptions=document.getElementById("pumpOptions");
+    if(commandType==="pump"){
+        pumpOptions.style.display="block";
     } else {
-        pumpOptions.style.display = "none";
+        pumpOptions.style.display="none";
     }
 }
 
-/* Neue Funktionen für Custom-Konfiguration */
+async function sendManualCommand(){
+    const commandType=document.getElementById("manualCommandType").value;
+    const value=parseInt(document.getElementById("manualValue").value);
 
-let currentRecipeForConfig = "";
-
-async function openCustomConfig(recipeName) {
-    currentRecipeForConfig = recipeName;
-    try {
-        const response = await fetch(`/get_recipe_ingredients?recipe=${encodeURIComponent(recipeName)}`);
-        const result = await response.json();
-        if (result.status === "success") {
-            const ingredients = result.ingredients;
-            currentCustomIngredients = ingredients;
-            showCustomConfigModal(ingredients);
-        } else {
-            showSnackbar(result.message, "error");
+    if(commandType==="pump"){
+        const pumpNumber=parseInt(document.getElementById("pumpNumber").value);
+        if(isNaN(value)||isNaN(pumpNumber)){
+            showSnackbar("Bitte gültige Pumpennummer und Dauer eingeben.","error");
+            return;
         }
-    } catch (error) {
-        showSnackbar("Fehler beim Laden der Rezeptzutaten.", "error");
+
+        try{
+            const r=await fetch("/send_command",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({type:commandType,pump:pumpNumber,value:value})
+            });
+            const res=await r.json();
+            if(r.ok){
+                showSnackbar(res.message,"success");
+            }else{
+                throw new Error(res.message||"Fehler beim Senden.");
+            }
+        }catch(e){
+            console.error("Fehler beim Senden:",e);
+            showSnackbar("Problem beim Senden des Befehls.","error");
+        }
+
+    }else{
+        if(!commandType||isNaN(value)){
+            showSnackbar("Bitte gültigen Befehl und Wert eingeben.","error");
+            return;
+        }
+
+        try{
+            const r=await fetch("/send_command",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({type:commandType,value:value})
+            });
+            const res=await r.json();
+            if(r.ok){
+                showSnackbar(res.message,"success");
+            } else {
+                throw new Error(res.message||"Fehler beim Senden des Befehls.");
+            }
+        }catch(e){
+            console.error("Fehler beim Senden:",e);
+            showSnackbar("Es gab ein Problem beim Senden des Befehls.","error");
+        }
     }
 }
 
-function showCustomConfigModal(ingredients) {
-    const overlay = document.getElementById("custom-config-overlay");
-    const modal = document.getElementById("custom-config-modal");
-    const ul = modal.querySelector("ul");
-    ul.innerHTML = "";
+async function fetchRecipeSummary(recipeName){
+    // Statt get_recipe_content nun get_recipe_ingredients aufrufen
+    try {
+        const r=await fetch(`/get_recipe_ingredients?recipe=${encodeURIComponent(recipeName)}`);
+        const res=await r.json();
+        if(!r.ok||res.status!=="success"){
+            throw new Error(res.message||"Fehler beim Laden der Zutaten.");
+        }
 
-    ingredients.forEach(ing => {
-        const li = document.createElement("li");
-        const label = document.createElement("label");
-        label.textContent = `${ing.name}: `;
-        const spanVal = document.createElement("span");
-        spanVal.style.fontWeight = "normal";
-        spanVal.textContent = `${ing.amount.toFixed(1)} cl`;
+        showRecipeSummaryModal(recipeName,res.ingredients);
+    }catch(e){
+        console.error("Fehler beim Abrufen der Rezeptzutaten:", e);
+        showSnackbar(`Die Zutaten des Rezepts '${recipeName}' konnten nicht geladen werden.`,"error");
+    }
+}
 
-        const range = document.createElement("input");
-        range.type = "range";
-        range.min = "0";
-        range.max = (ing.amount * 1.5).toFixed(1);
-        range.step = "0.1";
-        range.value = ing.amount.toFixed(1);
+function showRecipeSummaryModal(recipeName, ingredients) {
+    const overlay=document.getElementById("recipe-content-overlay");
+    const modal=document.getElementById("recipe-content-modal");
+    const heading=modal.querySelector("h3");
+    const ul=modal.querySelector("ul");
 
-        range.addEventListener("input", () => {
-            spanVal.textContent = `${range.value} cl`;
-            ing.current = parseFloat(range.value);
+    heading.textContent = `Rezeptinhalt von ${recipeName}`;
+    ul.innerHTML = ""; // Clean up
+
+    ingredients.forEach(ing=>{
+        const li=document.createElement("li");
+        const nameSpan=document.createElement("span");
+        nameSpan.textContent=ing.name;
+        const amountSpan=document.createElement("span");
+        amountSpan.textContent=`${ing.amount.toFixed(1)} cl`;
+
+        li.appendChild(nameSpan);
+        li.appendChild(amountSpan);
+        ul.appendChild(li);
+    });
+
+    overlay.style.display="block";
+    modal.style.display="block";
+}
+
+function closeRecipeContentModal(){
+    const overlay=document.getElementById("recipe-content-overlay");
+    const modal=document.getElementById("recipe-content-modal");
+    overlay.style.display="none";
+    modal.style.display="none";
+}
+
+// Passen die info-icon funktion an um das neue Modal zu nutzen
+function fetchRecipeContent(recipeName) {
+    // Anstatt den gesamten Inhalt zeigen wir jetzt die Zusammenfassung:
+    fetchRecipeSummary(recipeName);
+}
+
+// Custom Config Funktionen
+async function openCustomConfig(recipeName){
+    currentRecipeForConfig=recipeName;
+    try{
+        const r=await fetch(`/get_recipe_ingredients?recipe=${encodeURIComponent(recipeName)}`);
+        const res=await r.json();
+        if(r.ok&&res.status==="success"){
+            currentCustomIngredients=res.ingredients;
+            showCustomConfigModal(res.ingredients);
+        }else{
+            throw new Error(res.message||"Fehler beim Laden der Zutaten.");
+        }
+    }catch(e){
+        showSnackbar(e.message,"error");
+    }
+}
+
+function showCustomConfigModal(ingredients){
+    const overlay=document.getElementById("custom-config-overlay");
+    const modal=document.getElementById("custom-config-modal");
+    const ul=modal.querySelector("ul");
+    ul.innerHTML="";
+
+    ingredients.forEach(ing=>{
+        const li=document.createElement("li");
+        const label=document.createElement("label");
+        label.textContent=`${ing.name}:`;
+        const spanVal=document.createElement("span");
+        spanVal.style.fontWeight="normal";
+        spanVal.textContent=`${ing.amount.toFixed(1)} cl`;
+
+        const range=document.createElement("input");
+        range.type="range";
+        range.min="0.1";
+        range.max=(ing.amount*2).toFixed(1);
+        range.step="0.1";
+        range.value=ing.amount.toFixed(1);
+        ing.current=ing.amount; 
+        range.addEventListener("input",()=>{
+            spanVal.textContent=`${range.value} cl`;
+            ing.current=parseFloat(range.value);
         });
 
         li.appendChild(label);
         li.appendChild(range);
         li.appendChild(spanVal);
-
         ul.appendChild(li);
     });
 
-    overlay.style.display = "block";
-    modal.style.display = "block";
+    overlay.style.display="block";
+    modal.style.display="block";
 }
 
-function closeCustomConfigModal() {
-    const overlay = document.getElementById("custom-config-overlay");
-    const modal = document.getElementById("custom-config-modal");
-    overlay.style.display = "none";
-    modal.style.display = "none";
-    currentCustomIngredients = [];
-    currentRecipeForConfig = "";
+function closeCustomConfigModal(){
+    const overlay=document.getElementById("custom-config-overlay");
+    const modal=document.getElementById("custom-config-modal");
+    overlay.style.display="none";
+    modal.style.display="none";
+    currentCustomIngredients=[];
+    currentRecipeForConfig="";
 }
 
-async function startCustomConfigRecipe() {
-    // Sende angepasste Mengen an Server
-    const data = {
+async function startCustomConfigRecipe(){
+    const data={
         recipe: currentRecipeForConfig,
-        ingredients: currentCustomIngredients.map(i => ({name:i.name, amount:i.current || i.amount}))
+        ingredients: currentCustomIngredients.map(i=>({name:i.name, amount:i.current||i.amount}))
     };
 
-    try {
-        const response = await fetch("/run_custom_recipe", {
+    try{
+        const r=await fetch("/run_custom_recipe",{
             method:"POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify(data)
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(data)
         });
-        const result = await response.json();
-        if (result.status === "success") {
-            showSnackbar(`Rezept '${currentRecipeForConfig}' mit angepassten Mengen gestartet!`, "success");
-            startProgressTracking();
+        const res=await r.json();
+        if(r.ok){
+            showSnackbar(`Angepasstes Rezept '${currentRecipeForConfig}' gestartet!`,"success");
             closeCustomConfigModal();
-        } else {
-            showSnackbar(result.message, "error");
+            startProgressTracking();
+        }else{
+            throw new Error(res.message||"Fehler beim Starten des angepassten Rezepts.");
         }
-    } catch (error) {
-        showSnackbar("Fehler beim Starten des angepassten Rezepts.", "error");
+    }catch(e){
+        showSnackbar(e.message,"error");
     }
 }
-
 </script>
 </head>
 <body>
@@ -905,89 +814,39 @@ async function startCustomConfigRecipe() {
             <div id="progress-bar"></div>
         </div>
     </div>
-
+        
     <nav>
-        <button onclick="window.location.href='/rezepte'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
-  <path d="M5 8h6v1H5V8zM5 5h6v1H5V5z"/>
-  <path d="M14 4h1V3h-1V2a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9h1V8h-1V4z"/>
-</svg>
-
-            Rezepte verwalten
-        </button>
-        <button onclick="window.location.href='/config'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-  <path d="M8 4a3 3 0 1 1 0 8 3 3 0 0 1 0-8z"/>
-  <path d="M8 0a1 1 0 0 1 .993.883L9 1v1.05c.326.07.64.177.935.317l.708-.708A1 1 0 0 1 12.414.586l.708.708a1 1 0 0 1 0 1.414l-.708.708c.14.295.247.61.317.935H15a1 1 0 0 1 .993.883L16 6v1a1 1 0 0 1-.883.993L15 8h-1.05a5.022 5.022 0 0 1-.317.935l.708.708a1 1 0 0 1-1.414 1.414l-.708-.708c-.295.14-.61.247-.935.317V15a1 1 0 0 1-.883.993L8 16H7a1 1 0 0 1-.993-.883L6 15v-1.05a5.022 5.022 0 0 1-.935-.317l-.708.708a1 1 0 0 1-1.414-1.414l.708-.708A5.022 5.022 0 0 1 1.05 9H0a1 1 0 0 1-.993-.883L0 8V7a1 1 0 0 1 .883-.993L1 6h1.05c.07-.326.177-.64.317-.935l-.708-.708A1 1 0 0 1 2.586.586l.708.708c.295-.14.61-.247.935-.317V1a1 1 0 0 1 .883-.993L5 0h1h1z"/>
-</svg>
-
-            Konfiguration verwalten
-        </button>
+        <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
+        <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
     </nav>
 
-    <section class="config-section">
-        <h2>Verfügbare Drinks</h2>
-        <div class="grid-container">
-            {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
-            <div class="grid-item valid">
-                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-                <!-- Neue config-icon oben rechts -->
-                <div class="config-icon" onclick="openCustomConfig('{{ recipe.name }}')">⚙</div>
-                <div class="letter">{{ recipe.name[0] }}</div>
-                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-  <path d="M11.596 8.697l-6.363 3.692A.75.75 0 0 1 4 11.692V4.308a.75.75 0 0 1 1.233-.604l6.363 3.692a.75.75 0 0 1 0 1.301z"/>
-</svg>
-
-                    Starten
-                </button>
-            </div>
-            {% endfor %}
+    <h2>Verfügbare Drinks</h2>
+    <div class="grid-container">
+        {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
+        <div class="grid-item valid">
+            <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+            <div class="config-icon" onclick="openCustomConfig('{{ recipe.name }}')">⚙</div>
+            <div class="letter">{{ recipe.name[0] }}</div>
+            <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+            <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
         </div>
-    </section>
+        {% endfor %}
+    </div>
 
-    <section class="config-section">
-        <h2>Nicht verfügbare Drinks</h2>
-        <div class="grid-container">
-            {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
-            <div class="grid-item invalid">
-                <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-                <div class="letter">{{ recipe.name[0] }}</div>
-                <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-                <button class="start-button" onclick="showInvalidReasons('{{ loop.index }}')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-  <path d="M16 8c0-1.7-3.6-5.5-8-5.5S0 6.3 0 8s3.6 5.5 8 5.5S16 9.7 16 8z"/>
-  <path d="M8 5.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
-</svg>
-
-                    Details anzeigen
-                </button>
-                <div id="reasons-{{ loop.index }}" style="display:none;">
-                    {% for reason in recipe.reasons %}
-                        {{ reason }}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
+    <h2>Nicht verfügbare Drinks</h2>
+    <div class="grid-container">
+        {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
+        <div class="grid-item invalid">
+            <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+            <div class="letter">{{ recipe.name[0] }}</div>
+            <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+            <button class="start-button" onclick="alert('Fehlende Drinks: {{ recipe.reasons|join(', ') }}')">Details anzeigen</button>
         </div>
-    </section>
-
-    <div id="modal-overlay" class="modal-overlay" onclick="closeDrinkDetails()"></div>
-    <div id="drink-details-modal" class="modal">
-        <h3>Rezept Zutaten</h3>
-        <ul id="recipe-details-list"></ul>
-        <button class="close-button" onclick="closeDrinkDetails()">Schließen</button>
+        {% endfor %}
     </div>
 
     <div class="toggle-manual">
-        <button onclick="toggleManualControl()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tools" viewBox="0 0 16 16">
-  <path d="M1 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V1a.5.5 0 0 1-.5.5H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v1h.5a.5.5 0 0 1 0 1H14v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15h-1v.5a.5.5 0 0 1-1 0V15H4v.5a.5.5 0 0 1-1 0V15H2v.5a.5.5 0 0 1-1 0V15H.5a.5.5 0 0 1 0-1H1v-1H.5a.5.5 0 0 1 0-1H1V11H.5a.5.5 0 0 1 0-1H1V9H.5a.5.5 0 0 1 0-1H1V7H.5a.5.5 0 0 1 0-1H1V5H.5a.5.5 0 0 1 0-1H1V3H.5A.5.5 0 0 1 0 2.5V2a.5.5 0 0 1 .5-.5h0z"/>
-</svg>
-
-            Manuelle Steuerung anzeigen/ausblenden
-        </button>
+        <button onclick="toggleManualControl()">Manuelle Steuerung anzeigen/ausblenden</button>
     </div>
 
     <form onsubmit="event.preventDefault(); sendManualCommand();">
@@ -997,7 +856,7 @@ async function startCustomConfigRecipe() {
             <option value="servo">Servo bewegen (ms)</option>
             <option value="pump">Pumpe aktivieren (ms)</option>
         </select>
-        <div id="pumpOptions" style="display: none;">
+        <div id="pumpOptions" style="display:none;">
             <label for="pumpNumber">Pumpe:</label>
             <select id="pumpNumber" name="pumpNumber" required>
                 <option value="1">Pumpe 1</option>
@@ -1011,24 +870,31 @@ async function startCustomConfigRecipe() {
         <button type="submit">Befehl senden</button>
     </form>
 
-    <!-- Custom Config Modal -->
-    <div id="custom-config-overlay" style="display:none;"></div>
-    <div id="custom-config-modal">
-        <h3>Konfiguration anpassen</h3>
-        <ul></ul>
-        <div id="custom-config-modal-buttons">
-            <button id="custom-config-modal-cancel" onclick="closeCustomConfigModal()">Abbrechen</button>
-            <button id="custom-config-modal-start" onclick="startCustomConfigRecipe()">Starten</button>
-        </div>
-    </div>
-
 </main>
-
 <footer>
     &copy; 2024 Leo Fleischmann
 </footer>
 
 <div id="snackbar" class="snackbar"></div>
+
+<!-- Overlay & Modal für Custom Config -->
+<div id="custom-config-overlay"></div>
+<div id="custom-config-modal">
+    <h3>Rezept anpassen</h3>
+    <ul></ul>
+    <div id="custom-config-modal-buttons">
+        <button id="custom-config-modal-cancel" onclick="closeCustomConfigModal()">Abbrechen</button>
+        <button id="custom-config-modal-start" onclick="startCustomConfigRecipe()">Starten</button>
+    </div>
+</div>
+
+<!-- Overlay & Modal für Rezeptzutaten-Übersicht -->
+<div id="recipe-content-overlay"></div>
+<div id="recipe-content-modal">
+    <h3>Rezeptinhalt</h3>
+    <ul></ul>
+    <button id="recipe-content-close" onclick="closeRecipeContentModal()">Schließen</button>
+</div>
 
 </body>
 </html>
