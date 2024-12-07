@@ -311,54 +311,61 @@
             }, 3000);
         }
 
-        async function saveConfig() {
-            const pourTimeInput = document.getElementById("pour-time-value").value.trim();
+async function saveConfig() {
+    const pourTimeInput = document.getElementById("pour-time-value").value.trim();
+    const moveWaitInput = document.getElementById("move-wait").value.trim();
+    const dripWaitInput = document.getElementById("drip-wait").value.trim();
+    const refillWaitInput = document.getElementById("refill-wait").value.trim();
 
-            const drinkItems = document.querySelectorAll("#drink-config-list .config-item");
-            const config = {
-                pour_time: parseInt(pourTimeInput) || 2000,
-            };
+    const drinkItems = document.querySelectorAll("#drink-config-list .config-item");
+    const config = {
+        pour_time: parseInt(pourTimeInput) || 2000,
+        move_wait: parseInt(moveWaitInput) || 500,
+        drip_wait: parseInt(dripWaitInput) || 1000,
+        refill_wait: parseInt(refillWaitInput) || 5000
+    };
 
-            // Getränke-Daten hinzufügen
-            drinkItems.forEach(drinkItem => {
-                const name = drinkItem.querySelector(".config-name").value.trim();
-                const position = parseInt(drinkItem.querySelector(".config-position").value.trim());
-                if (name && !isNaN(position)) {
-                    config[name] = position;
-                }
-            });
-
-            // Pumpen-Daten auslesen
-            for (let i = 1; i <= 4; i++) {
-                const pumpDrink = document.getElementById(`pump${i}_drink`).value.trim();
-                const pumpTime = parseInt(document.getElementById(`pump${i}_time`).value.trim()) || 1000;
-                const pumpPosition = parseInt(document.getElementById(`pump${i}_position`).value.trim()) || 250;
-
-                if (pumpDrink) {
-                    config[`pump${i}`] = pumpDrink;
-                }
-                config[`pump${i}_time`] = pumpTime;
-                config[`pump${i}_position`] = pumpPosition;
-            }
-
-            try {
-                const response = await fetch("/config", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ config }),
-                });
-
-                const result = await response.json();
-                if (result.status === "success") {
-                    showSnackbar("Konfiguration erfolgreich gespeichert", "success");
-                } else {
-                    throw new Error(result.message || "Fehler beim Speichern der Konfiguration");
-                }
-            } catch (error) {
-                showSnackbar(error.message, "error");
-            }
+    // Getränke-Daten hinzufügen
+    drinkItems.forEach(drinkItem => {
+        const name = drinkItem.querySelector(".config-name").value.trim();
+        const position = parseInt(drinkItem.querySelector(".config-position").value.trim());
+        if (name && !isNaN(position)) {
+            config[name] = position;
         }
+    });
 
+    // Pumpen-Daten auslesen
+    for (let i = 1; i <= 4; i++) {
+        const pumpDrink = document.getElementById(`pump${i}_drink`).value.trim();
+        const pumpTime = parseInt(document.getElementById(`pump${i}_time`).value.trim()) || 1000;
+        const pumpPosition = parseInt(document.getElementById(`pump${i}_position`).value.trim()) || 250;
+
+        if (pumpDrink) {
+            config[`pump${i}`] = pumpDrink;
+        }
+        config[`pump${i}_time`] = pumpTime;
+        config[`pump${i}_position`] = pumpPosition;
+    }
+
+    try {
+        const response = await fetch("/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ config }),
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+            showSnackbar("Konfiguration erfolgreich gespeichert", "success");
+        } else {
+            throw new Error(result.message || "Fehler beim Speichern der Konfiguration");
+        }
+    } catch (error) {
+        showSnackbar(error.message, "error");
+    }
+}
+
+        
         function addDrinkConfigRow() {
             const container = document.querySelector("#drink-config-list");
             const row = document.createElement("div");
@@ -455,15 +462,34 @@
             <button onclick="window.location.href='/'">Zurück zur Übersicht</button>
         </nav>
 
-        <!-- Pour Time Section -->
-        <section class="config-section">
-            <h2>Pour Time</h2>
-            <p>Die Pour Time ist die Zeit in Millisekunden, die benötigt wird, um 2 cl auszugießen. Sie wird als Referenz für sämtliche Ausgießvorgänge verwendet.</p>
-            <div class="pour-time-container">
-                <label for="pour-time-value">Pour Time (2cl):</label>
-                <input type="number" id="pour-time-value" value="{{ config.pour_time }}" placeholder="2000">
-            </div>
-        </section>
+
+<!-- Pour Time Section -->
+<section class="config-section">
+    <h2>Pour Time</h2>
+    <p>Die Pour Time ist die Zeit in Millisekunden, die benötigt wird, um 2 cl auszugießen. Sie wird als Referenz für sämtliche Ausgießvorgänge verwendet.</p>
+    <div class="pour-time-container">
+        <label for="pour-time-value">Pour Time (2cl):</label>
+        <input type="number" id="pour-time-value" value="{{ config.pour_time }}" placeholder="2000">
+    </div>
+</section>
+
+<!-- Neue Wartezeiten Sektion -->
+<section class="config-section">
+    <h2>Wartezeiten</h2>
+    <p>Konfigurieren Sie hier die Wartezeiten nach Bewegungen und nach Einschenkvorgängen.</p>
+    <div class="pour-time-container">
+        <label for="move-wait">Move Wait (ms):</label>
+        <input type="number" id="move-wait" value="{{ config.move_wait or 500 }}" placeholder="500">
+    </div>
+    <div class="pour-time-container">
+        <label for="drip-wait">Drip Wait (ms):</label>
+        <input type="number" id="drip-wait" value="{{ config.drip_wait or 1000 }}" placeholder="1000">
+    </div>
+    <div class="pour-time-container">
+        <label for="refill-wait">Refill Wait (ms):</label>
+        <input type="number" id="refill-wait" value="{{ config.refill_wait or 5000 }}" placeholder="5000">
+    </div>
+</section>
 
         <!-- Drinks Configuration Section -->
         <section class="config-section">
