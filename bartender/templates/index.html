@@ -786,6 +786,22 @@ async function startCustomConfigRecipe(){
         showSnackbar(e.message,"error");
     }
 }
+
+    function showInvalidReasons(recipeName) {
+    const reasonsDiv = document.getElementById(`reasons-${recipeName}`);
+    if (!reasonsDiv) {
+        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
+        return;
+    }
+
+    const reasons = reasonsDiv.textContent.trim();
+    if (reasons) {
+        alert(`Fehlende Drinks für '${recipeName}':\n` + reasons);
+    } else {
+        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
+    }
+}
+
 </script>
 </head>
 <body>
@@ -840,7 +856,14 @@ async function startCustomConfigRecipe(){
             <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
             <div class="letter">{{ recipe.name[0] }}</div>
             <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-            <button class="start-button" onclick="alert('Fehlende Drinks: {{ recipe.reasons|join(', ') }}')">Details anzeigen</button>
+            <button class="start-button" onclick="showInvalidReasons('{{ recipe.name }}')">Details anzeigen</button>
+<!-- Unsichtbare Liste der Gründe -->
+<div id="reasons-{{ recipe.name }}" style="display:none;">
+    {% for reason in recipe.reasons %}
+        {{ reason }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
+</div>
+
         </div>
         {% endfor %}
     </div>
