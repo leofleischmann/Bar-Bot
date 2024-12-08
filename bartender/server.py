@@ -37,6 +37,37 @@ def save_config(config):
     except Exception as e:
         print(f"Fehler beim Speichern der Konfigurationsdatei: {e}")
 
+@app.route("/generate_and_run_temp_recipe", methods=["POST"])
+def generate_and_run_temp_recipe():
+    """Generiert ein temporäres Rezept, führt es aus und löscht es danach."""
+    try:
+        data = request.json
+        recipe_name = data.get("name", "").strip()
+        alcohol_data = data.get("alcoholData", [])
+
+        if not recipe_name:
+            return jsonify({"status": "error", "message": "Rezeptname fehlt."}), 400
+        if not alcohol_data or not isinstance(alcohol_data, list):
+            return jsonify({"status": "error", "message": "Ungültige Zutatenliste."}), 400
+
+        generate_response = generate_recipe(data)
+        if generate_response.status_code != 200:
+            return generate_response
+
+        recipe_path = os.path.join(RECIPE_FOLDER, f"{recipe_name}.txt")
+        try:
+            thread = Thread(target=execute_recipe, args=(f"{recipe_name}.txt",))
+            thread.start()
+            thread.join()
+        finally:
+            if os.path.exists(recipe_path):
+                os.remove(recipe_path)
+
+        return jsonify({"status": "success", "message": f"Temporäres Rezept '{recipe_name}' wurde ausgeführt und gelöscht."})
+    except Exception as e:
+        print(f"Fehler bei generate_and_run_temp_recipe: {e}")
+        return jsonify({"status": "error", "message": "Fehler bei der Ausführung des temporären Rezepts."}), 500
+
 
 def check_esp_connection():
     try:
@@ -312,10 +343,16 @@ def send_command():
 
 
 @app.route("/generate_recipe", methods=["POST"])
-def generate_recipe():
-    """Generiert ein neues Rezept basierend auf den angegebenen Zutaten und Mengen."""
+def generate_recipe(data=None):
+    """
+    Generiert ein neues Rezept basierend auf den angegebenen Zutaten und Mengen.
+    Kann entweder aus einem HTTP-Request (POST) oder direkt mit übergebenen Daten aufgerufen werden.
+    """
     try:
-        data = request.json
+        # Verwende übergebene Daten, falls vorhanden, oder ziehe sie aus dem Request-JSON
+        if data is None:
+            data = request.json
+        
         recipe_name = data.get("name", "").strip()
         alcohol_data = data.get("alcoholData", [])
 
@@ -328,10 +365,15 @@ def generate_recipe():
             recipe_name += ".txt"
         recipe_path = os.path.join(RECIPE_FOLDER, recipe_name)
 
-        # Original-Logik
+        # Lade Konfiguration und Standard-Wartezeiten
         config = load_config()
+        move_wait = config.get("move_wait", 500)
+        refill_wait = config.get("refill_wait", 5000)
+        drip_wait = config.get("drip_wait", 1000)
         pour_time = config.get("pour_time", 2000)
+
         commands = ["start"]
+
         for item in alcohol_data:
             alcohol = item.get("alcohol")
             amount_cl = float(item.get("amount", 0))
@@ -340,13 +382,15 @@ def generate_recipe():
             if amount_cl <= 0:
                 return jsonify({"status": "error", "message": "Menge muss größer als 0 sein."}), 400
 
+            # Bewegung zur Zutat
             move_command = f"move {alcohol}"
             is_valid, error = validate_recipe_command(move_command, config)
             if not is_valid:
                 return jsonify({"status": "error", "message": error}), 400
             commands.append(move_command)
-            commands.append("wait 500")
+            commands.append(f"wait move_wait")
 
+            # Gießen der Menge in 2-cl-Schritten, danach Rest
             remaining_cl = amount_cl
             while remaining_cl > 2:
                 servo_command = "servo cl 2"
@@ -354,7 +398,7 @@ def generate_recipe():
                 if not is_valid:
                     return jsonify({"status": "error", "message": error}), 400
                 commands.append(servo_command)
-                commands.append("wait 5000")
+                commands.append(f"wait refill_wait")
                 remaining_cl -= 2
 
             if remaining_cl > 0:
@@ -363,11 +407,13 @@ def generate_recipe():
                 if not is_valid:
                     return jsonify({"status": "error", "message": error}), 400
                 commands.append(servo_command)
-                commands.append("wait 1000")
+                commands.append(f"wait drip_wait")
 
+        # Abschlussbewegung
         commands.append("move 10")
         commands.append("done")
 
+        # Rezept in Datei speichern
         try:
             with open(recipe_path, "w") as file:
                 file.write("\n".join(commands))
@@ -378,7 +424,6 @@ def generate_recipe():
     except Exception as e:
         print(f"Fehler beim Generieren des Rezepts: {e}")
         return jsonify({"status": "error", "message": "Fehler beim Generieren des Rezepts."}), 500
-
 
 @app.route("/recipe_progress", methods=["GET"])
 def recipe_progress():
