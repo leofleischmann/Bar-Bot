@@ -479,6 +479,68 @@
         #recipe-content-close:hover {
             background-color:#c82333;
         }
+#missing-drinks-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2001;
+}
+
+#missing-drinks-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 2002;
+    width: 300px;
+    max-width: 90%;
+    text-align: center;
+}
+
+#missing-drinks-modal h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+#missing-drinks-modal ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+#missing-drinks-modal ul li {
+    background: #f5f5f5;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+#close-missing-drinks {
+    margin-top: 15px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#close-missing-drinks:hover {
+    background-color: #c82333;
+}
 
     </style>
 <script>
@@ -789,20 +851,70 @@ async function startCustomConfigRecipe() {
     }
 }
 
-    function showInvalidReasons(recipeName) {
+function showInvalidReasons(recipeName) {
     const reasonsDiv = document.getElementById(`reasons-${recipeName}`);
-    if (!reasonsDiv) {
-        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
+    const overlay = document.getElementById("missing-drinks-overlay");
+    const modal = document.getElementById("missing-drinks-modal");
+    const reasonsList = document.getElementById("missing-drinks-list");
+
+    if (!reasonsDiv || !overlay || !modal || !reasonsList) {
+        console.error("Ein erforderliches Element wurde nicht gefunden.");
         return;
     }
 
     const reasons = reasonsDiv.textContent.trim();
     if (reasons) {
-        alert(`Fehlende Drinks für '${recipeName}':\n` + reasons);
+        // Bereinigen und Gründe formatieren
+        reasonsList.innerHTML = ""; // Vorherige Inhalte entfernen
+        reasons.split(",").forEach(reason => {
+            const formattedReason = reason
+                .replace("Kein Eintrag für '", "")
+                .replace("' in der Konfiguration", "")
+                .trim();
+            if (formattedReason) {
+                const li = document.createElement("li");
+                li.textContent = formattedReason;
+                reasonsList.appendChild(li);
+            }
+        });
+
+        // Modal anzeigen
+        overlay.style.display = "block";
+        modal.style.display = "block";
     } else {
         showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
     }
 }
+
+// Funktion zum Schließen des Modals
+function closeMissingDrinksModal() {
+    const overlay = document.getElementById("missing-drinks-overlay");
+    const modal = document.getElementById("missing-drinks-modal");
+
+    if (!overlay || !modal) {
+        console.error("Overlay oder Modal nicht gefunden.");
+        return;
+    }
+
+    overlay.style.display = "none";
+    modal.style.display = "none";
+}
+
+
+// Funktion zum Schließen des Modals
+function closeInvalidReasonsModal() {
+    const overlay = document.getElementById("invalid-reasons-overlay");
+    const modal = document.getElementById("invalid-reasons-modal");
+
+    if (!overlay || !modal) {
+        console.error("Overlay oder Modal nicht gefunden.");
+        return;
+    }
+
+    overlay.style.display = "none";
+    modal.style.display = "none";
+}
+
 
 </script>
 </head>
@@ -919,6 +1031,15 @@ async function startCustomConfigRecipe() {
     <ul></ul>
     <button id="recipe-content-close" onclick="closeRecipeContentModal()">Schließen</button>
 </div>
+
+<!-- Overlay & Modal für fehlende Getränke -->
+<div id="missing-drinks-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2001;"></div>
+<div id="missing-drinks-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border-radius:10px; padding:20px; box-shadow:0 4px 8px rgba(0,0,0,0.2); z-index:2002; width:300px; max-width:90%; text-align:center;">
+    <h3 style="margin-top:0; margin-bottom:15px;">Fehlende Getränke</h3>
+    <ul id="missing-drinks-list" style="list-style:none; padding:0; margin:0; text-align:left;"></ul>
+    <button id="close-missing-drinks" style="margin-top:15px; background-color:#dc3545; color:white; border:none; border-radius:5px; padding:8px 16px; cursor:pointer;" onclick="closeMissingDrinksModal()">Schließen</button>
+</div>
+
 
 </body>
 </html>
