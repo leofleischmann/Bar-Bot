@@ -762,28 +762,28 @@ function closeCustomConfigModal(){
     currentRecipeForConfig="";
 }
 
-async function startCustomConfigRecipe(){
-    const data={
-        recipe: currentRecipeForConfig,
-        ingredients: currentCustomIngredients.map(i=>({name:i.name, amount:i.current||i.amount}))
+async function startCustomConfigRecipe() {
+    const data = {
+        name: `temp_recipe_${Date.now()}`, // Temporärer Name
+        alcoholData: currentCustomIngredients.map(i => ({ alcohol: i.name, amount: i.current || i.amount }))
     };
 
-    try{
-        const r=await fetch("/run_custom_recipe",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify(data)
+    try {
+        const r = await fetch("/generate_and_run_temp_recipe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
         });
-        const res=await r.json();
-        if(r.ok){
-            showSnackbar(`Angepasstes Rezept '${currentRecipeForConfig}' gestartet!`,"success");
+        const res = await r.json();
+        if (r.ok) {
+            showSnackbar(`Temporäres Rezept wurde erfolgreich gestartet!`, "success");
             closeCustomConfigModal();
             startProgressTracking();
-        }else{
-            throw new Error(res.message||"Fehler beim Starten des angepassten Rezepts.");
+        } else {
+            throw new Error(res.message || "Fehler beim Starten des temporären Rezepts.");
         }
-    }catch(e){
-        showSnackbar(e.message,"error");
+    } catch (e) {
+        showSnackbar(e.message, "error");
     }
 }
 
