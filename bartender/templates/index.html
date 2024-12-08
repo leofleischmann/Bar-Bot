@@ -753,18 +753,19 @@ function showCustomConfigModal(ingredients){
     modal.style.display="block";
 }
 
-function closeCustomConfigModal(){
-    const overlay=document.getElementById("custom-config-overlay");
-    const modal=document.getElementById("custom-config-modal");
-    overlay.style.display="none";
-    modal.style.display="none";
-    currentCustomIngredients=[];
-    currentRecipeForConfig="";
+function closeCustomConfigModal() {
+    const overlay = document.getElementById("custom-config-overlay");
+    const modal = document.getElementById("custom-config-modal");
+    overlay.style.display = "none"; // Versteckt den Overlay-Hintergrund
+    modal.style.display = "none"; // Versteckt das Modal selbst
+    currentCustomIngredients = []; // Reset der Zutaten
+    currentRecipeForConfig = ""; // Reset des aktuellen Rezepts
 }
+
 
 async function startCustomConfigRecipe() {
     const data = {
-        name: `temp_recipe_${Date.now()}`, // Temporärer Name
+        name: `temp_recipe_${Date.now()}`,
         alcoholData: currentCustomIngredients.map(i => ({ alcohol: i.name, amount: i.current || i.amount }))
     };
 
@@ -777,13 +778,14 @@ async function startCustomConfigRecipe() {
         const res = await r.json();
         if (r.ok) {
             showSnackbar(`Temporäres Rezept wurde erfolgreich gestartet!`, "success");
-            closeCustomConfigModal();
             startProgressTracking();
         } else {
             throw new Error(res.message || "Fehler beim Starten des temporären Rezepts.");
         }
     } catch (e) {
         showSnackbar(e.message, "error");
+    } finally {
+        closeCustomConfigModal(); // Immer schließen, unabhängig vom Erfolg
     }
 }
 
@@ -838,7 +840,7 @@ async function startCustomConfigRecipe() {
 
     <h2>Verfügbare Drinks</h2>
     <div class="grid-container">
-        {% for recipe in recipes|sort(attribute='name') if recipe.valid %}
+        {% for recipe in recipes|sort(attribute='name') if recipe.valid and not recipe.name.startswith("temp_recipe") %}
         <div class="grid-item valid">
             <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
             <div class="config-icon" onclick="openCustomConfig('{{ recipe.name }}')">⚙</div>
@@ -851,19 +853,18 @@ async function startCustomConfigRecipe() {
 
     <h2>Nicht verfügbare Drinks</h2>
     <div class="grid-container">
-        {% for recipe in recipes|sort(attribute='name') if not recipe.valid %}
+        {% for recipe in recipes|sort(attribute='name') if not recipe.valid and not recipe.name.startswith("temp_recipe") %}
         <div class="grid-item invalid">
             <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
             <div class="letter">{{ recipe.name[0] }}</div>
             <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
             <button class="start-button" onclick="showInvalidReasons('{{ recipe.name }}')">Details anzeigen</button>
-<!-- Unsichtbare Liste der Gründe -->
-<div id="reasons-{{ recipe.name }}" style="display:none;">
-    {% for reason in recipe.reasons %}
-        {{ reason }}{% if not loop.last %}, {% endif %}
-    {% endfor %}
-</div>
-
+            <!-- Unsichtbare Liste der Gründe -->
+            <div id="reasons-{{ recipe.name }}" style="display:none;">
+                {% for reason in recipe.reasons %}
+                    {{ reason }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
         </div>
         {% endfor %}
     </div>
