@@ -639,22 +639,6 @@
             </div>
         </section>
 
-        <!-- Hinzufügen eines neuen Rezepts -->
-        <section class="section add-recipe">
-            <h2>Neues Rezept hinzufügen</h2>
-            <div class="form-group">
-                <label for="new-recipe-name">Rezeptname:</label>
-                <input type="text" id="new-recipe-name" placeholder="Rezeptname eingeben" aria-label="Rezeptname eingeben">
-            </div>
-            <div class="form-group">
-                <label for="new-recipe-content">Rezeptinhalt:</label>
-                <textarea id="new-recipe-content" rows="8" placeholder="Rezeptinhalt eingeben" aria-label="Rezeptinhalt eingeben"></textarea>
-            </div>
-            <div class="form-buttons">
-                <button class="save" onclick="saveNewRecipe()">Rezept hinzufügen</button>
-            </div>
-        </section>
-
         <!-- Automatisches Generieren eines Rezepts -->
         <section class="section generate-recipe">
             <h2>Rezept automatisch generieren</h2>
@@ -672,6 +656,22 @@
             </div>
         </section>
 
+        <!-- Hinzufügen eines neuen Rezepts -->
+        <section class="section add-recipe">
+            <h2>Rezept manuell hinzufügen</h2>
+            <div class="form-group">
+                <label for="new-recipe-name">Rezeptname:</label>
+                <input type="text" id="new-recipe-name" placeholder="Rezeptname eingeben" aria-label="Rezeptname eingeben">
+            </div>
+            <div class="form-group">
+                <label for="new-recipe-content">Rezeptinhalt:</label>
+                <textarea id="new-recipe-content" rows="8" placeholder="Rezeptinhalt eingeben" aria-label="Rezeptinhalt eingeben"></textarea>
+            </div>
+            <div class="form-buttons">
+                <button class="save" onclick="saveNewRecipe()">Rezept hinzufügen</button>
+            </div>
+        </section>
+
         <!-- Mögliche Befehle und Syntax -->
         <section class="section command-list">
             <h2>Mögliche Befehle und Syntax</h2>
@@ -680,28 +680,29 @@
                 <span>Startet ein neues Rezept.</span>
             </div>
             <div class="command-item">
-                <span><strong>done</strong></span>
-                <span>Beendet ein laufendes Rezept.</span>
-            </div>
-            <div class="command-item">
-                <span><strong>move [Wert]</strong></span>
+                <span><strong>move [mm / Drink]</strong></span>
                 <span>Bewegt die Plattform zu einer bestimmten Position in mm.</span>
             </div>
+
             <div class="command-item">
-                <span><strong>move [Drink]</strong></span>
-                <span>Bewegt die Plattform zu einem konfigurierten Drink.</span>
-            </div>
-            <div class="command-item">
-                <span><strong>servo cl [Wert]</strong></span>
+                <span><strong>servo cl [Wert in cl]</strong></span>
                 <span>Steuert die Servo-Menge in cl.</span>
             </div>
             <div class="command-item">
-                <span><strong>servo ms [Wert]</strong></span>
+                <span><strong>servo ms [ms]</strong></span>
                 <span>Bewegt den Servo mit einer bestimmten Verzögerung in ms.</span>
             </div>
             <div class="command-item">
-                <span><strong>wait [Wert]</strong></span>
+                <span><strong>wait [ms / variable]</strong></span>
                 <span>Wartet für die angegebene Zeit in Millisekunden.</span>
+            </div>
+            <div class="command-item">
+                <span><strong>Variablen für wait</strong></span>
+                <span>move_wait, drip_wait, refill_wait</span>
+            </div>
+            <div class="command-item">
+                <span><strong>done</strong></span>
+                <span>Beendet das Rezept.</span>
             </div>
         </section>
     </main>
