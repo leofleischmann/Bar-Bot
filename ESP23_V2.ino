@@ -305,10 +305,11 @@ void handleServo() {
   servoDelay = delayTime;
   Serial.printf("Webserver: Servo bewegen (140 Grad), warte %d ms, zurück zu 90 Grad.\n", servoDelay);
 
-  myServo.write(140);
+  myServo.write(180);
+  delay(180);
   delay(servoDelay);
   myServo.write(90);
-
+  delay(180);
   server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Servo-Bewegung abgeschlossen\"}");
 }
 
