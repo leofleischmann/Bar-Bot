@@ -11,22 +11,43 @@ app = Flask(__name__)
 RECIPE_FOLDER = "Rezepte"
 CONFIG_FILE = "config.json"
 
-SERIAL_PORT = "/dev/ttyUSB0"
+# SERIAL_PORT wird nicht mehr fest vorgegeben, sondern automatisch ermittelt
 BAUDRATE = 115200
 
 ser = None
-esp_connected = False  
-serial_lock = Lock()  # Neuer Lock für seriellen Zugriff
+esp_connected = False
+serial_lock = Lock()
+
+def find_esp_port():
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        print(f"Prüfe Port: {port.device} - Hersteller: {port.manufacturer} - Produkt: {port.product}")
+        # Wenn keine Herstellerinfo vorliegt, aber Sie wissen, dass nur ein USB-Seriell-Adapter angeschlossen ist:
+        # Akzeptieren Sie einfach den ersten gefundenen /dev/ttyUSB*-Port
+        if port.device.startswith("/dev/ttyUSB"):
+            print(f"ESP (vermutet) an Port {port.device}")
+            return port.device
+
+    return None
 
 def init_serial():
     global ser, esp_connected
     with serial_lock:
         if ser is not None and ser.is_open:
             return
+
+        esp_port = find_esp_port()
+        if esp_port is None:
+            # Kein passender Port gefunden
+            print("Kein ESP gefunden. Bitte überprüfen Sie die Verbindung.")
+            esp_connected = False
+            ser = None
+            return
+
         try:
-            ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=2)
+            ser = serial.Serial(esp_port, BAUDRATE, timeout=2)
             esp_connected = True
-            print(f"ESP verbunden an {SERIAL_PORT}")
+            print(f"ESP verbunden an {esp_port}")
         except serial.SerialException as e:
             esp_connected = False
             ser = None
