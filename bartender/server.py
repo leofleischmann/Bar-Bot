@@ -207,7 +207,7 @@ def index():
                                     invalid_reasons.append(f"Unbekannter servo Modus: {mode}")
                             else:
                                 is_valid = False
-                                invalid_reasons.append("Ungültiger servo-Befehl: {command}")
+                                invalid_reasons.append(f"Ungültiger servo-Befehl: {command}")
             except Exception as e:
                 is_valid = False
                 invalid_reasons.append(f"Fehler beim Lesen des Rezepts: {e}")
