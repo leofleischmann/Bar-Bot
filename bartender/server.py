@@ -33,16 +33,22 @@ def find_esp_port():
 def init_serial():
     global ser, esp_connected
     with serial_lock:
-        if ser is not None and ser.is_open:
-            return
-
+        # Bei jedem Aufruf neu prüfen, ob ein Port verfügbar ist.
         esp_port = find_esp_port()
         if esp_port is None:
             # Kein passender Port gefunden
             print("Kein ESP gefunden. Bitte überprüfen Sie die Verbindung.")
             esp_connected = False
+            # Falls zuvor eine Verbindung bestand, jetzt schließen
+            if ser is not None and ser.is_open:
+                ser.close()
             ser = None
             return
+
+        # Wenn wir hier ankommen, haben wir einen passenden Port gefunden.
+        # Falls ser bereits offen war, schließen wir ihn um sicher neu zu öffnen
+        if ser is not None and ser.is_open:
+            ser.close()
 
         try:
             ser = serial.Serial(esp_port, BAUDRATE, timeout=2)
