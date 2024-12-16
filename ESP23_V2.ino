@@ -41,8 +41,8 @@ AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 Servo myServo;
 int servoDelay = 1000;
 
-const char* ssid = "MagentaWLAN-E38C";
-const char* password = "93515246204969428314";
+const char* ssid = "ssid";
+const char* password = "pass";
 
 IPAddress local_IP(192, 168, 2, 236);
 IPAddress gateway(192, 168, 2, 1);
