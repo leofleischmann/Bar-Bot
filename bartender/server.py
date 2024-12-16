@@ -2,9 +2,10 @@ import os
 import json
 import time
 import serial
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 from threading import Thread, Lock
 import serial.tools.list_ports
+import subprocess
 
 app = Flask(__name__)
 
@@ -18,37 +19,35 @@ ser = None
 esp_connected = False
 serial_lock = Lock()
 
+# **Globale Variablen Definieren**
+active_recipe = None
+is_running = False
+current_progress = 0
+
 def find_esp_port():
     ports = serial.tools.list_ports.comports()
     for port in ports:
-        print(f"Prüfe Port: {port.device} - Hersteller: {port.manufacturer} - Produkt: {port.product}")
-        # Wenn keine Herstellerinfo vorliegt, aber Sie wissen, dass nur ein USB-Seriell-Adapter angeschlossen ist:
-        # Akzeptieren Sie einfach den ersten gefundenen /dev/ttyUSB*-Port
+        manufacturer = port.manufacturer or "Unbekannt"
+        product = port.product or "Unbekannt"
+        print(f"Prüfe Port: {port.device} - Hersteller: {manufacturer} - Produkt: {product}")
         if port.device.startswith("/dev/ttyUSB"):
             print(f"ESP (vermutet) an Port {port.device}")
             return port.device
-
     return None
 
 def init_serial():
     global ser, esp_connected
     with serial_lock:
-        # Bei jedem Aufruf neu prüfen, ob ein Port verfügbar ist.
+        if ser is not None and ser.is_open:
+            return  # Bereits verbunden
+
+        # Nach dem ESP-Port suchen
         esp_port = find_esp_port()
         if esp_port is None:
-            # Kein passender Port gefunden
             print("Kein ESP gefunden. Bitte überprüfen Sie die Verbindung.")
             esp_connected = False
-            # Falls zuvor eine Verbindung bestand, jetzt schließen
-            if ser is not None and ser.is_open:
-                ser.close()
             ser = None
             return
-
-        # Wenn wir hier ankommen, haben wir einen passenden Port gefunden.
-        # Falls ser bereits offen war, schließen wir ihn um sicher neu zu öffnen
-        if ser is not None and ser.is_open:
-            ser.close()
 
         try:
             ser = serial.Serial(esp_port, BAUDRATE, timeout=2)
@@ -61,7 +60,6 @@ def init_serial():
 
 def send_command_to_esp(command_dict):
     global ser, esp_connected
-    init_serial()
     with serial_lock:
         if not esp_connected or ser is None or not ser.is_open:
             return {"status": "error", "message": "ESP nicht verbunden"}
@@ -149,12 +147,96 @@ def check_esp_connection():
             esp_connected = False
             return False
 
-active_recipe = None
-is_running = False
-current_progress = 0
+def is_wifi_connected():
+    try:
+        result = subprocess.run(['iwgetid'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"Fehler beim Überprüfen der WLAN-Verbindung: {e}")
+        return False
+
+def start_hotspot():
+    try:
+        subprocess.run(["sudo", "systemctl", "start", "hostapd"], check=True)
+        subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
+        print("Hotspot gestartet.")
+    except subprocess.CalledProcessError as e:
+        print(f"Fehler beim Starten des Hotspots: {e}")
+
+def stop_hotspot():
+    try:
+        subprocess.run(["sudo", "systemctl", "stop", "hostapd"], check=True)
+        subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
+        print("Hotspot gestoppt.")
+    except subprocess.CalledProcessError as e:
+        print(f"Fehler beim Stoppen des Hotspots: {e}")
+
+def initialize_network():
+    if is_wifi_connected():
+        print("WLAN ist verbunden.")
+        stop_hotspot()
+    else:
+        print("WLAN ist nicht verbunden. Starte Hotspot.")
+        start_hotspot()
+
+# **Flask-Routen und Funktionen**
+
+@app.route("/wifi", methods=["GET", "POST"])
+def wifi_config():
+    config = load_config()
+
+    if request.method == "GET":
+        return render_template("wifi.html", wlan_ssid=config.get("wlan_ssid", ""), wlan_password=config.get("wlan_password", ""))
+    
+    elif request.method == "POST":
+        wlan_ssid = request.form.get("wlan_ssid")
+        wlan_password = request.form.get("wlan_password")
+        
+        if not wlan_ssid or not wlan_password:
+            return render_template("wifi.html", error="SSID und Passwort sind erforderlich.", wlan_ssid=wlan_ssid, wlan_password=wlan_password)
+        
+        config["wlan_ssid"] = wlan_ssid
+        config["wlan_password"] = wlan_password
+        save_config(config)
+        
+        # Konfigurieren von wpa_supplicant
+        try:
+            wpa_conf = f"""
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=DE
+
+network={{
+    ssid="{wlan_ssid}"
+    psk="{wlan_password}"
+}}
+"""
+            with open("/etc/wpa_supplicant/wpa_supplicant.conf", "a") as f:
+                f.write(wpa_conf)
+            
+            # Neuladen von wpa_supplicant
+            subprocess.run(["sudo", "wpa_cli", "-i", "wlan0", "reconfigure"], check=True)
+            
+            # Versuch, sich mit dem neuen WLAN zu verbinden
+            time.sleep(5)  # Kurze Wartezeit, um die Verbindung aufzubauen
+
+            if is_wifi_connected():
+                print("Verbindung zum WLAN erfolgreich hergestellt.")
+                stop_hotspot()
+                return redirect(url_for('index'))
+            else:
+                print("Verbindung zum WLAN fehlgeschlagen.")
+                return render_template("wifi.html", error="Verbindung zum WLAN fehlgeschlagen. Bitte überprüfen Sie SSID und Passwort.", wlan_ssid=wlan_ssid, wlan_password=wlan_password)
+        
+        except Exception as e:
+            print(f"Fehler beim Konfigurieren von WLAN: {e}")
+            return render_template("wifi.html", error="Fehler beim Konfigurieren des WLAN.", wlan_ssid=wlan_ssid, wlan_password=wlan_password)
 
 @app.route("/")
 def index():
+    if not is_wifi_connected():
+        return redirect(url_for('wifi_config'))
+    
     recipes = []
     config = load_config()
 
@@ -723,7 +805,7 @@ def execute_custom_recipe(commands, recipe_name):
                             print(f"[DEBUG] (Custom) Aggregiere Pumpe: {cl} cl => {aggregated_pump_duration} ms total für Ziel {current_target}, Pumpe {pump_number}")
                         else:
                             delay = int((cl / 2) * pour_time)
-                            print(f"[DEBUG] (Custom) Servo für {cl} cl, delay {delay} ms (kein Pumpenziel).")
+                            print(f"[DEBUG] (Custom) Servo für {cl} cl mit Verzögerung {delay} ms (kein Pumpenziel).")
                             send_command_to_esp({"command":"servo","delay":delay})
                     elif mode == "ms":
                         delay = int(value)
@@ -763,6 +845,7 @@ def execute_custom_recipe(commands, recipe_name):
                         abtropfzeit = duration
                         print(f"[DEBUG] (Custom) Setze Abtropfzeit auf {abtropfzeit} ms.")
                     else:
+                        print(f"[DEBUG] (Custom) Warte {duration} ms (Platzhalter: {wait_value}).")
                         time.sleep(duration / 1000.0)
                 else:
                     print(f"[DEBUG] (Custom) Ungültiger wait-Befehl: {command}")
@@ -974,4 +1057,5 @@ def validate_recipe_command(command, config):
 
 if __name__ == "__main__":
     init_serial()
+    initialize_network()
     app.run(host="0.0.0.0", port=5001, debug=True)
