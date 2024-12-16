@@ -1,21 +1,73 @@
 import os
 import json
 import time
-import requests
+import serial
 from flask import Flask, jsonify, render_template, request
-from threading import Thread
+from threading import Thread, Lock
+import serial.tools.list_ports
 
 app = Flask(__name__)
 
 RECIPE_FOLDER = "Rezepte"
-CONFIG_FILE = "config.json"  # Konfigurationsdatei
-ESP_IP = "192.168.2.236"     # IP-Adresse des ESP
-ESP_PORT = 80
+CONFIG_FILE = "config.json"
 
-active_recipe = None  # Aktiver Rezeptname
-is_running = False    # Status, ob ein Rezept läuft
-current_progress = 0  # Globaler Fortschritt
+SERIAL_PORT = "/dev/ttyUSB0"
+BAUDRATE = 115200
 
+ser = None
+esp_connected = False  
+serial_lock = Lock()  # Neuer Lock für seriellen Zugriff
+
+def init_serial():
+    global ser, esp_connected
+    with serial_lock:
+        if ser is not None and ser.is_open:
+            return
+        try:
+            ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=2)
+            esp_connected = True
+            print(f"ESP verbunden an {SERIAL_PORT}")
+        except serial.SerialException as e:
+            esp_connected = False
+            ser = None
+            print(f"ESP nicht verbunden: {e}")
+
+def send_command_to_esp(command_dict):
+    global ser, esp_connected
+    init_serial()
+    with serial_lock:
+        if not esp_connected or ser is None or not ser.is_open:
+            return {"status": "error", "message": "ESP nicht verbunden"}
+
+        try:
+            cmd_str = json.dumps(command_dict) + "\n"
+            ser.write(cmd_str.encode('utf-8'))
+
+            start_time = time.time()
+            while True:
+                line = ser.readline().decode('utf-8', errors='replace').strip()
+                if not line:
+                    if time.time() - start_time > 5:
+                        return {"status": "error", "message": "Keine Antwort vom ESP"}
+                    continue
+
+                # Debug-Zeilen ignorieren
+                if line.startswith("DEBUG:"):
+                    continue
+
+                # Nur JSON-Linien verarbeiten
+                if line.startswith("{"):
+                    try:
+                        resp = json.loads(line)
+                        return resp
+                    except json.JSONDecodeError as e:
+                        print(f"JSON-Fehler beim Parsen der ESP-Antwort: {e}, empfangene Daten: {line}")
+                        return {"status": "error", "message": "Ungültige Antwort vom ESP"}
+
+        except Exception as e:
+            print(f"Fehler bei der ESP-Kommunikation: {e}")
+            esp_connected = False
+            return {"status": "error", "message": "Kommunikationsfehler mit ESP"}
 
 def load_config():
     try:
@@ -28,7 +80,6 @@ def load_config():
         print(f"Fehler beim Lesen der Konfigurationsdatei: {e}")
         return {}
 
-
 def save_config(config):
     try:
         with open(CONFIG_FILE, "w") as file:
@@ -37,64 +88,56 @@ def save_config(config):
     except Exception as e:
         print(f"Fehler beim Speichern der Konfigurationsdatei: {e}")
 
-@app.route("/generate_and_run_temp_recipe", methods=["POST"])
-def generate_and_run_temp_recipe():
-    """Generiert ein temporäres Rezept, führt es aus und löscht es danach."""
-    try:
-        data = request.json
-        recipe_name = data.get("name", "").strip()
-        alcohol_data = data.get("alcoholData", [])
-
-        if not recipe_name:
-            return jsonify({"status": "error", "message": "Rezeptname fehlt."}), 400
-        if not alcohol_data or not isinstance(alcohol_data, list):
-            return jsonify({"status": "error", "message": "Ungültige Zutatenliste."}), 400
-
-        generate_response = generate_recipe(data)
-        if generate_response.status_code != 200:
-            return generate_response
-
-        recipe_path = os.path.join(RECIPE_FOLDER, f"{recipe_name}.txt")
-        try:
-            thread = Thread(target=execute_recipe, args=(f"{recipe_name}.txt",))
-            thread.start()
-            thread.join()
-        finally:
-            if os.path.exists(recipe_path):
-                os.remove(recipe_path)
-
-        return jsonify({"status": "success", "message": f"Temporäres Rezept '{recipe_name}' wurde ausgeführt und gelöscht."})
-    except Exception as e:
-        print(f"Fehler bei generate_and_run_temp_recipe: {e}")
-        return jsonify({"status": "error", "message": "Fehler bei der Ausführung des temporären Rezepts."}), 500
-
-
 def check_esp_connection():
-    try:
-        response = requests.get(f"http://{ESP_IP}:{ESP_PORT}/status", timeout=2)
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("status") == "online"
-        else:
-            print(f"ESP antwortet, aber mit unerwartetem Statuscode: {response.status_code}")
-            return False
-    except requests.exceptions.ConnectTimeout:
-        print("Fehler: Verbindung zum ESP abgelaufen. Möglicherweise ist der ESP offline oder die IP falsch.")
+    global esp_connected
+    if not esp_connected or ser is None or not ser.is_open:
         return False
-    except requests.exceptions.ConnectionError:
-        print("Fehler: Keine Verbindung zum ESP möglich. Prüfe die Netzwerkverbindung.")
-        return False
-    except requests.exceptions.RequestException as e:
-        print(f"Allgemeiner Fehler beim Prüfen des ESP-Status: {e}")
-        return False
+    with serial_lock:
+        try:
+            ser.write(b'{"command":"status"}\n')
+            line = ser.readline().decode('utf-8').strip()
+            if not line:
+                return False
 
+            if line.startswith("DEBUG:"):
+                # Wenn wir beim Statusaufruf eine DEBUG-Zeile bekommen, ignorieren und nochmal versuchen
+                # Kurzer Timeout, um keine Endlosschleife zu riskieren
+                start = time.time()
+                while line.startswith("DEBUG:"):
+                    if time.time() - start > 2:
+                        return False
+                    line = ser.readline().decode('utf-8').strip()
+                    if not line:
+                        return False
+
+            if line.startswith("{"):
+                try:
+                    resp_json = json.loads(line)
+                    return resp_json.get("status") == "online"
+                except json.JSONDecodeError as e:
+                    print(f"JSON-Fehler beim Überprüfen des ESP-Status: {e}, Daten: {line}")
+                    return False
+            else:
+                # Keine JSON-Antwort erhalten, daher kein Status
+                return False
+        except Exception as e:
+            print(f"Fehler bei der ESP-Kommunikation: {e}")
+            esp_connected = False
+            return False
+
+# Ab hier bleibt die restliche Logik (Rezepte, Web-Routen, execute_recipe, etc.) unverändert.
+# Wichtig ist nur, dass bei JEDEM Zugriff auf "ser" der "serial_lock" verwendet wird.
+# Das betrifft auch send_command_to_esp und check_esp_connection Aufrufe in execute_recipe und anderen Funktionen.
+
+active_recipe = None
+is_running = False
+current_progress = 0
 
 @app.route("/")
 def index():
     recipes = []
     config = load_config()
 
-    # Getränke aus Pumpen hinzufügen
     for i in range(1, 5):
         pump_drink = config.get(f"pump{i}")
         if pump_drink:
@@ -144,22 +187,52 @@ def index():
                                     invalid_reasons.append(f"Unbekannter servo Modus: {mode}")
                             else:
                                 is_valid = False
-                                invalid_reasons.append(f"Ungültiger servo-Befehl: {command}")
+                                invalid_reasons.append("Ungültiger servo-Befehl: {command}")
             except Exception as e:
                 is_valid = False
                 invalid_reasons.append(f"Fehler beim Lesen des Rezepts: {e}")
 
             recipes.append({"name": filename, "valid": is_valid, "reasons": invalid_reasons})
 
-    esp_connected = check_esp_connection()
-    return render_template("index.html", recipes=recipes, esp_connected=esp_connected, active_recipe=active_recipe, is_running=is_running)
-
+    esp_connected_local = check_esp_connection()
+    return render_template("index.html", recipes=recipes, esp_connected=esp_connected_local, active_recipe=active_recipe, is_running=is_running)
 
 @app.route("/esp_status")
 def esp_status():
+    global esp_connected
     esp_connected = check_esp_connection()
-    return jsonify({"connected": esp_connected})
+    status_message = "ESP verbunden" if esp_connected else "ESP nicht verbunden"
+    return jsonify({"connected": esp_connected, "status": status_message})
 
+@app.route("/generate_and_run_temp_recipe", methods=["POST"])
+def generate_and_run_temp_recipe():
+    try:
+        data = request.json
+        recipe_name = data.get("name", "").strip()
+        alcohol_data = data.get("alcoholData", [])
+
+        if not recipe_name:
+            return jsonify({"status": "error", "message": "Rezeptname fehlt."}), 400
+        if not alcohol_data or not isinstance(alcohol_data, list):
+            return jsonify({"status": "error", "message": "Ungültige Zutatenliste."}), 400
+
+        generate_response = generate_recipe(data)
+        if generate_response.status_code != 200:
+            return generate_response
+
+        recipe_path = os.path.join(RECIPE_FOLDER, f"{recipe_name}.txt")
+        try:
+            thread = Thread(target=execute_recipe, args=(f"{recipe_name}.txt",))
+            thread.start()
+            thread.join()
+        finally:
+            if os.path.exists(recipe_path):
+                os.remove(recipe_path)
+
+        return jsonify({"status": "success", "message": f"Temporäres Rezept '{recipe_name}' wurde ausgeführt und gelöscht."})
+    except Exception as e:
+        print(f"Fehler bei generate_and_run_temp_recipe: {e}")
+        return jsonify({"status": "error", "message": "Fehler bei der Ausführung des temporären Rezepts."}), 500
 
 @app.route("/config", methods=["GET", "POST"])
 def manage_config():
@@ -172,7 +245,6 @@ def manage_config():
             return jsonify({"status": "error", "message": "Ungültige Konfigurationsdaten"}), 400
         save_config(new_config)
         return jsonify({"status": "success", "message": "Konfiguration erfolgreich gespeichert"})
-
 
 @app.route("/rezepte", methods=["GET", "POST", "DELETE"])
 def manage_recipes():
@@ -229,7 +301,6 @@ def manage_recipes():
         else:
             return jsonify({"status": "error", "message": f"Rezept '{name}' nicht gefunden."}), 404
 
-
 @app.route("/run_recipe", methods=["POST"])
 def run_recipe():
     global is_running
@@ -247,32 +318,24 @@ def run_recipe():
     thread.start()
     return jsonify({"status": "success", "message": f"Rezept '{recipe_file}' gestartet."})
 
-
 def activate_pump_thread(pump_number, duration):
     try:
         print(f"[DEBUG] Aktiviere Pumpe {pump_number} für {duration} ms via activate_pump_thread...")
-        response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": duration})
-        if response.status_code == 200:
-            result = response.json()
-            if result.get("status") == "success":
-                print(f"[DEBUG] Pumpe {pump_number} erfolgreich aktiviert.")
-            else:
-                print(f"[DEBUG] Fehler beim Aktivieren der Pumpe {pump_number}: {result.get('message', 'Unbekannter Fehler')}")
+        resp = send_command_to_esp({"command":"pump","pump":pump_number,"duration":duration})
+        if resp.get("status") == "success":
+            print(f"[DEBUG] Pumpe {pump_number} erfolgreich aktiviert.")
         else:
-            print(f"[DEBUG] Fehler: ESP-Server antwortet mit {response.status_code}")
-    except requests.RequestException as e:
+            print(f"[DEBUG] Fehler beim Aktivieren der Pumpe {pump_number}: {resp.get('message', 'Unbekannter Fehler')}")
+    except Exception as e:
         print(f"[DEBUG] Fehler bei der Pumpenkommunikation für Pumpe {pump_number}: {e}")
-
 
 def activate_pump(pump_number, duration):
     print(f"[DEBUG] activate_pump aufgerufen für Pumpe {pump_number}, Dauer {duration} ms")
     thread = Thread(target=activate_pump_thread, args=(pump_number, duration))
     thread.start()
 
-
 def calculate_pump_duration(cl, pump_time):
     return int(cl * pump_time)
-
 
 @app.route("/get_recipe_content", methods=["GET"])
 def get_recipe_content():
@@ -293,9 +356,12 @@ def get_recipe_content():
     except Exception as e:
         return f"Fehler beim Lesen der Datei: {str(e)}", 500
 
-
 @app.route("/send_command", methods=["POST"])
 def send_command():
+    global esp_connected
+    if not esp_connected:
+        return jsonify({"status": "error", "message": "ESP nicht verbunden."}), 400
+
     try:
         data = request.json
         if not data:
@@ -310,16 +376,16 @@ def send_command():
 
         if command_type == "move":
             print(f"[DEBUG] Manueller 'move': {value} mm")
-            response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": value})
-            if response.status_code == 200:
+            resp = send_command_to_esp({"command":"move","position":value})
+            if resp.get("status") == "success":
                 return jsonify({"status": "success", "message": f"Plattform zu {value} mm bewegt."})
             else:
                 return jsonify({"status": "error", "message": "ESP hat nicht auf 'move' reagiert."}), 500
 
         elif command_type == "servo":
             print(f"[DEBUG] Manueller 'servo': {value} ms")
-            response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": value})
-            if response.status_code == 200:
+            resp = send_command_to_esp({"command":"servo","delay":value})
+            if resp.get("status") == "success":
                 return jsonify({"status": "success", "message": f"Servo mit {value} ms Verzögerung bewegt."})
             else:
                 return jsonify({"status": "error", "message": "ESP hat nicht auf 'servo' reagiert."}), 500
@@ -328,8 +394,8 @@ def send_command():
             if not pump or not isinstance(pump, int):
                 return jsonify({"status": "error", "message": "Pumpennummer fehlt oder ist ungültig."}), 400
             print(f"[DEBUG] Manueller 'pump': Pumpe {pump}, Dauer {value} ms")
-            response = requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump, "duration": value})
-            if response.status_code == 200:
+            resp = send_command_to_esp({"command":"pump","pump":pump,"duration":value})
+            if resp.get("status") == "success":
                 return jsonify({"status": "success", "message": f"Pumpe {pump} für {value} ms aktiviert."})
             else:
                 return jsonify({"status": "error", "message": "ESP hat nicht auf 'pump' reagiert."}), 500
@@ -341,18 +407,12 @@ def send_command():
         print(f"Error in send_command: {e}")
         return jsonify({"status": "error", "message": "Serverfehler beim Verarbeiten des Befehls."}), 500
 
-
 @app.route("/generate_recipe", methods=["POST"])
 def generate_recipe(data=None):
-    """
-    Generiert ein neues Rezept basierend auf den angegebenen Zutaten und Mengen.
-    Kann entweder aus einem HTTP-Request (POST) oder direkt mit übergebenen Daten aufgerufen werden.
-    """
     try:
-        # Verwende übergebene Daten, falls vorhanden, oder ziehe sie aus dem Request-JSON
         if data is None:
             data = request.json
-        
+
         recipe_name = data.get("name", "").strip()
         alcohol_data = data.get("alcoholData", [])
 
@@ -365,7 +425,6 @@ def generate_recipe(data=None):
             recipe_name += ".txt"
         recipe_path = os.path.join(RECIPE_FOLDER, recipe_name)
 
-        # Lade Konfiguration und Standard-Wartezeiten
         config = load_config()
         move_wait = config.get("move_wait", 500)
         refill_wait = config.get("refill_wait", 5000)
@@ -382,15 +441,13 @@ def generate_recipe(data=None):
             if amount_cl <= 0:
                 return jsonify({"status": "error", "message": "Menge muss größer als 0 sein."}), 400
 
-            # Bewegung zur Zutat
             move_command = f"move {alcohol}"
             is_valid, error = validate_recipe_command(move_command, config)
             if not is_valid:
                 return jsonify({"status": "error", "message": error}), 400
             commands.append(move_command)
-            commands.append(f"wait move_wait")
+            commands.append("wait move_wait")
 
-            # Gießen der Menge in 2-cl-Schritten, danach Rest
             remaining_cl = amount_cl
             while remaining_cl > 2:
                 servo_command = "servo cl 2"
@@ -398,7 +455,7 @@ def generate_recipe(data=None):
                 if not is_valid:
                     return jsonify({"status": "error", "message": error}), 400
                 commands.append(servo_command)
-                commands.append(f"wait refill_wait")
+                commands.append("wait refill_wait")
                 remaining_cl -= 2
 
             if remaining_cl > 0:
@@ -407,13 +464,11 @@ def generate_recipe(data=None):
                 if not is_valid:
                     return jsonify({"status": "error", "message": error}), 400
                 commands.append(servo_command)
-                commands.append(f"wait drip_wait")
+                commands.append("wait drip_wait")
 
-        # Abschlussbewegung
         commands.append("move 10")
         commands.append("done")
 
-        # Rezept in Datei speichern
         try:
             with open(recipe_path, "w") as file:
                 file.write("\n".join(commands))
@@ -430,21 +485,16 @@ def recipe_progress():
     global current_progress
     return jsonify({"progress": current_progress})
 
-
 def execute_recipe(recipe_file):
-    """Führt ein Rezept aus, mit Aggregation von Pumpenläufen und korrekter Wartezeit + debug + Platzhaltererkennung."""
     global active_recipe, is_running, current_progress
     active_recipe = recipe_file
     is_running = True
     current_progress = 0
 
     config = load_config()
-    # pump_time wird jetzt spezifisch für jede Pumpe abgerufen
-    # pump_time = config.get("pump_time", 1000)  # Entfernt
     pour_time = config.get("pour_time", 2000)
     pump_position = config.get("pumpen", 250)
 
-    # Platzhalterwerte laden
     move_wait = config.get("move_wait", 500)
     drip_wait = config.get("drip_wait", 1000)
     refill_wait = config.get("refill_wait", 5000)
@@ -466,20 +516,25 @@ def execute_recipe(recipe_file):
                 current_progress = int((idx + 1) / total_commands * 100)
                 print(f"[DEBUG] Verarbeite Befehl: {command}, progress: {current_progress}%")
 
+                if not esp_connected or ser is None or not ser.is_open:
+                    print("[DEBUG] ESP nicht verbunden. Breche Rezept ausführung ab.")
+                    break
+
                 if command.startswith("start"):
                     print(f"Rezept '{recipe_file}' gestartet.")
                     continue
 
+                # Restliche Befehlsverarbeitung wie im Original
+
+                # Beispielhaft für "move":
                 elif command.startswith("move"):
                     target = command.split()[1]
 
-                    # Beende laufende Pumpen
                     if pump_in_progress:
                         pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
                         if pump_number:
-                            pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                             print(f"[DEBUG] Aggregation endet. Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": aggregated_pump_duration})
+                            send_command_to_esp({"command":"pump","pump":pump_number,"duration":aggregated_pump_duration})
                         print(f"[DEBUG] Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
                         time.sleep(abtropfzeit / 1000.0)
                         abtropfzeit = 0
@@ -502,7 +557,7 @@ def execute_recipe(recipe_file):
                             continue
 
                     print(f"[DEBUG] Bewege Plattform zu {position} mm für '{target}'...")
-                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
+                    send_command_to_esp({"command":"move","position":position})
 
                 elif command.startswith("servo"):
                     if not current_target:
@@ -522,12 +577,12 @@ def execute_recipe(recipe_file):
                         else:
                             delay = int((cl / 2) * pour_time)
                             print(f"[DEBUG] Bewege Servo für {cl} cl mit Verzögerung {delay} ms (kein Pumpenziel).")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
+                            send_command_to_esp({"command":"servo","delay":delay})
 
                     elif mode == "ms":
                         delay = int(value)
                         print(f"[DEBUG] Servo ms: {delay} ms Verzögerung.")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
+                        send_command_to_esp({"command":"servo","delay":delay})
 
                 elif command.startswith("wait"):
                     parts = command.split()
@@ -536,11 +591,9 @@ def execute_recipe(recipe_file):
                         continue
                     wait_value = parts[1]
 
-                    # Prüfen ob Zahl oder Platzhalter
                     if wait_value.isdigit():
                         duration = int(wait_value)
                     else:
-                        # Platzhalter auswerten
                         if wait_value == "move_wait":
                             duration = move_wait
                         elif wait_value == "drip_wait":
@@ -564,7 +617,7 @@ def execute_recipe(recipe_file):
                         if pump_number:
                             pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                             print(f"[DEBUG] Rezeptende: Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": aggregated_pump_duration})
+                            send_command_to_esp({"command":"pump","pump":pump_number,"duration":aggregated_pump_duration})
                         print(f"[DEBUG] Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
                         time.sleep(abtropfzeit / 1000.0)
                         abtropfzeit = 0
@@ -573,7 +626,6 @@ def execute_recipe(recipe_file):
 
                     print(f"Rezept '{recipe_file}' abgeschlossen.")
                     break
-
     except Exception as e:
         print(f"[DEBUG] Fehler beim Ausführen des Rezepts: {e}")
 
@@ -581,9 +633,7 @@ def execute_recipe(recipe_file):
     is_running = False
     active_recipe = None
 
-
 def execute_custom_recipe(commands, recipe_name):
-    """Execute custom recipe with original aggregator logic + debug + Platzhalter-Unterstützung."""
     global active_recipe, is_running, current_progress
     active_recipe = recipe_name
     is_running = True
@@ -617,20 +667,18 @@ def execute_custom_recipe(commands, recipe_name):
                 if len(parts) == 2:
                     target = parts[1]
 
-                    # Beende laufende Pumpenoperationen, falls vorhanden
                     if pump_in_progress:
                         pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
                         if pump_number and aggregated_pump_duration > 0:
                             pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                             print(f"[DEBUG] (Custom) Aggregation endet bei move. Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": aggregated_pump_duration})
+                            send_command_to_esp({"command":"pump","pump":pump_number,"duration":aggregated_pump_duration})
                         print(f"[DEBUG] (Custom) Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
                         time.sleep(abtropfzeit / 1000.0)
                         abtropfzeit = 0
                         aggregated_pump_duration = 0
                         pump_in_progress = False
 
-                    # Zielposition bestimmen
                     if target.isdigit():
                         position = int(target)
                         current_target = None
@@ -647,7 +695,7 @@ def execute_custom_recipe(commands, recipe_name):
                             continue
 
                     print(f"[DEBUG] (Custom) Bewege Plattform zu {position} mm für '{target}'...")
-                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
+                    send_command_to_esp({"command":"move","position":position})
                 else:
                     print(f"[DEBUG] (Custom) Ungültiger move-Befehl: {command}")
 
@@ -667,11 +715,11 @@ def execute_custom_recipe(commands, recipe_name):
                         else:
                             delay = int((cl / 2) * pour_time)
                             print(f"[DEBUG] (Custom) Servo für {cl} cl, delay {delay} ms (kein Pumpenziel).")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
+                            send_command_to_esp({"command":"servo","delay":delay})
                     elif mode == "ms":
                         delay = int(value)
                         print(f"[DEBUG] (Custom) Servo ms: {delay} ms Verzögerung.")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
+                        send_command_to_esp({"command":"servo","delay":delay})
                     else:
                         print(f"[DEBUG] (Custom) Unbekannter servo Modus: {mode}")
                 else:
@@ -681,6 +729,10 @@ def execute_custom_recipe(commands, recipe_name):
                 parts = command.split()
                 if len(parts) == 2:
                     wait_value = parts[1]
+                    move_wait = config.get("move_wait", 500)
+                    drip_wait = config.get("drip_wait", 1000)
+                    refill_wait = config.get("refill_wait", 5000)
+
                     if wait_value.isdigit():
                         duration = int(wait_value)
                         print(f"[DEBUG] (Custom) Warte {duration} ms (Zahl).")
@@ -707,13 +759,12 @@ def execute_custom_recipe(commands, recipe_name):
                     print(f"[DEBUG] (Custom) Ungültiger wait-Befehl: {command}")
 
             elif command.startswith("done"):
-                # Beende laufende Pumpenoperationen
                 if pump_in_progress:
                     pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
                     if pump_number and aggregated_pump_duration > 0:
                         pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                         print(f"[DEBUG] (Custom) Rezeptende: Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": aggregated_pump_duration})
+                        send_command_to_esp({"command":"pump","pump":pump_number,"duration":aggregated_pump_duration})
                     print(f"[DEBUG] (Custom) Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
                     time.sleep(abtropfzeit / 1000.0)
                     abtropfzeit = 0
@@ -729,7 +780,6 @@ def execute_custom_recipe(commands, recipe_name):
     current_progress = 100
     is_running = False
     active_recipe = None
-
 
 @app.route("/get_recipe_ingredients")
 def get_recipe_ingredients():
@@ -767,7 +817,6 @@ def get_recipe_ingredients():
     except Exception as e:
         print(e)
         return jsonify({"status": "error", "message": "Fehler beim Lesen des Rezepts"}), 500
-
 
 @app.route("/run_custom_recipe", methods=["POST"])
 def run_custom_recipe():
@@ -818,7 +867,6 @@ def run_custom_recipe():
     except Exception as e:
         print(e)
         return jsonify({"status": "error", "message": "Fehler beim Anpassen des Rezepts."}), 500
-
 
 @app.route("/calibrate", methods=["GET", "POST"])
 def calibrate():
@@ -882,10 +930,11 @@ def calibrate():
                 config["pour_time"] = int(data["pour_time"])
             if "drink_position" in data and item in config:
                 config[item] = int(data["drink_position"])
+# Falls execute_recipe parallel zu status-Abfragen läuft, kann es dennoch zu Verzögerungen kommen.
+# Ggf. Status-Abfragen während Rezeptausführung einschränken oder einen weiteren Lock um execute_recipe legen.
 
         save_config(config)
         return jsonify({"status": "success", "message": "Kalibrierte Werte erfolgreich gespeichert."})
-
 
 def validate_recipe_command(command, config):
     command = command.strip()
@@ -904,7 +953,6 @@ def validate_recipe_command(command, config):
     elif parts[0] == "servo":
         if len(parts) < 3:
             return False, f"Ungültiger servo-Befehl: {command}"
-        # Weitere Prüfungen auf cl/ms Werte (optional, je nach Bedarf)
     elif parts[0] == "wait":
         if len(parts) != 2:
             return False, f"Ungültiger wait-Befehl: {command}"
@@ -917,8 +965,6 @@ def validate_recipe_command(command, config):
     else:
         return False, f"Unbekannter Befehl: {command}"
 
-    return True, None
-
-
 if __name__ == "__main__":
+    init_serial()
     app.run(host="0.0.0.0", port=5001, debug=True)
