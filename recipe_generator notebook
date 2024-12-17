@@ -1,0 +1,178 @@
+import os
+import json
+from collections import defaultdict
+from itertools import chain
+
+# ============================
+# Konfigurationsparameter
+# ============================
+
+# Pfade konfigurieren
+JSON_FILE = 'C:/Users/Desktop/cocktails.json'  # Pfad zur JSON-Datei
+RECIPE_FOLDER = 'C:/Users/Desktop/Rezepte'      # Zielordner für die Rezeptdateien
+BEST_COMBINATION_FILE = 'C:/Users/Desktop/best_combination.txt'  # Pfad zur besten Kombination
+
+# Parameter für Kombinationen
+COMBINATION_SIZE = 13  # Anzahl der Zutaten in der Kombination
+MAX_SERVO_CL = 2       # Maximale Menge pro "servo cl" Befehl in cl
+
+# Liste der auszuschließenden Zutaten
+EXCLUDED_INGREDIENTS = {"egg white", "cream", "honey", "sugar", "mint", "lime", "lemon"}
+
+# ============================
+# Hilfsfunktionen
+# ============================
+
+def load_recipes(json_path):
+    """Lädt die Rezepte aus einer JSON-Datei."""
+    try:
+        with open(json_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    except Exception as e:
+        print(f"Fehler beim Laden der JSON-Datei: {e}")
+        return []
+
+def sanitize_name(name):
+    """Normalisiert die Namen der Zutaten."""
+    return name.strip().replace(" ", "_").lower()
+
+def is_valid_amount(amount):
+    """Prüft, ob die Menge numerisch ist."""
+    try:
+        float(amount)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+def is_valid_ingredient(ingredient, amount, unit):
+    """
+    Prüft, ob eine Zutat gültig ist:
+    - Nicht ausgeschlossen (z.B. egg white)
+    - Menge ist numerisch
+    - Einheit ist 'cl' (andere Einheiten werden ignoriert)
+    """
+    return (
+        ingredient.lower() not in EXCLUDED_INGREDIENTS and
+        is_valid_amount(amount) and
+        unit.lower() == "cl"  # Nur Zutaten mit der Einheit 'cl' sind gültig
+    )
+
+def split_amount(amount, max_cl=MAX_SERVO_CL):
+    """Teilt eine Menge in Schritte von maximal `max_cl` auf."""
+    amount = float(amount)
+    steps = [max_cl] * (int(amount) // max_cl)
+    remainder = round(amount % max_cl, 2)
+    if remainder > 0:
+        steps.append(remainder)
+    return steps
+
+def generate_commands(recipe):
+    """Generiert eine Liste von Befehlen für ein Rezept."""
+    commands = ['start']
+    for ing in recipe.get('ingredients', []):
+        ingredient_name = ing.get('ingredient')
+        amount_cl = ing.get('amount', 0)
+        unit = ing.get('unit', '').lower()
+
+        # Prüfen, ob die Zutat gültig ist
+        if not ingredient_name or not is_valid_ingredient(ingredient_name, amount_cl, unit):
+            continue
+
+        # Zutat normalisieren und bewegen
+        sanitized_ingredient = sanitize_name(ingredient_name)
+        commands.append(f"move {sanitized_ingredient}")
+        commands.append("wait move_wait")
+        
+        # Menge in 2-cl-Schritte aufteilen
+        amounts = split_amount(amount_cl)
+        for idx, amt in enumerate(amounts):
+            commands.append(f"servo cl {amt}")
+            if idx < len(amounts) - 1:  # Nicht nach dem letzten Schritt
+                commands.append("wait refill_wait")
+            else:
+                commands.append("wait drip_wait")
+    
+    commands.append("move 10")
+    commands.append("done")
+    return commands
+
+def save_recipe_file(recipe_name, commands, folder):
+    """Speichert die Befehle in einer .txt-Datei."""
+    safe_name = "".join(c for c in recipe_name if c.isalnum() or c in (' ', '_')).rstrip()
+    filename = f"{safe_name}.txt"
+    filepath = os.path.join(folder, filename)
+    with open(filepath, 'w', encoding='utf-8') as file:
+        file.write("\n".join(commands))
+    print(f"Rezept '{recipe_name}' wurde als '{filename}' gespeichert.")
+
+def find_top_ingredients(recipes, combination_size=13):
+    """Findet die Top-Zutaten und zählt die abgedeckten Rezepte mit Namen."""
+    ingredient_counts = defaultdict(int)
+    valid_recipes = []
+
+    # Zutaten und Rezeptnamen sammeln
+    for recipe in recipes:
+        recipe_name = recipe.get('name', 'Unbenanntes Rezept')
+        valid_ingredients = [
+            sanitize_name(ing.get('ingredient')) 
+            for ing in recipe.get('ingredients', []) 
+            if ing.get('ingredient') and is_valid_ingredient(ing.get('ingredient'), ing.get('amount'), ing.get('unit'))
+        ]
+        if valid_ingredients:
+            valid_recipes.append((recipe_name, set(valid_ingredients)))
+            for ing in set(valid_ingredients):
+                ingredient_counts[ing] += 1
+
+    # Top-Zutaten bestimmen
+    sorted_ingredients = sorted(ingredient_counts.items(), key=lambda x: x[1], reverse=True)
+    top_ingredients = [ing for ing, _ in sorted_ingredients[:combination_size]]
+
+    # Rezepte zählen, die mit den Top-Zutaten machbar sind
+    covered_recipes = []
+    for recipe_name, ingredients in valid_recipes:
+        if ingredients.issubset(set(top_ingredients)):
+            covered_recipes.append((recipe_name, ingredients))
+
+    return top_ingredients, covered_recipes
+
+def save_best_combination(top_ingredients, covered_recipes, filename):
+    """Speichert die besten Zutaten und die abgedeckten Rezepte mit Namen in eine Datei."""
+    with open(filename, 'w', encoding='utf-8') as file:
+        file.write(f"Top {len(top_ingredients)} Zutaten:\n")
+        file.write(", ".join(top_ingredients).replace("_", " ").title() + "\n\n")
+        file.write("Abgedeckte Rezepte:\n")
+        for recipe_name, ingredients in covered_recipes:
+            formatted_ingredients = ", ".join(ingredients).replace("_", " ").title()
+            file.write(f"- {recipe_name}: {formatted_ingredients}\n")
+    print(f"Beste Kombination wurde in '{filename}' gespeichert.")
+
+
+# ============================
+# Hauptfunktion
+# ============================
+
+def main():
+    os.makedirs(RECIPE_FOLDER, exist_ok=True)
+    recipes = load_recipes(JSON_FILE)
+
+    # Rezepte generieren und speichern
+    for recipe in recipes:
+        recipe_name = recipe.get('name', 'Unbenanntes Rezept')
+        commands = generate_commands(recipe)
+        if len(commands) > 3:  # Leere Rezepte ignorieren
+            save_recipe_file(recipe_name, commands, RECIPE_FOLDER)
+    
+    # Top Zutaten und abgedeckte Rezepte bestimmen
+    top_ingredients, covered_recipes = find_top_ingredients(recipes, COMBINATION_SIZE)
+    print(f"\nTop {COMBINATION_SIZE} Zutaten:")
+    print(", ".join(top_ingredients).replace("_", " ").title())
+    print(f"\nAbgedeckte Rezepte:")
+    for recipe_name, ingredients in covered_recipes:
+        formatted_ingredients = ", ".join(ingredients).replace("_", " ").title()
+        print(f"- {recipe_name}: {formatted_ingredients}")
+
+    # Ergebnisse speichern
+    save_best_combination(top_ingredients, covered_recipes, BEST_COMBINATION_FILE)
+
+if __name__ == "__main__":
+    main()
