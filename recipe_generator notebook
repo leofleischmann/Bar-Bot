@@ -8,9 +8,9 @@ from itertools import chain
 # ============================
 
 # Pfade konfigurieren
-JSON_FILE = 'C:/Users/Desktop/cocktails.json'  # Pfad zur JSON-Datei
-RECIPE_FOLDER = 'C:/Users/Desktop/Rezepte'      # Zielordner für die Rezeptdateien
-BEST_COMBINATION_FILE = 'C:/Users/Desktop/best_combination.txt'  # Pfad zur besten Kombination
+JSON_FILE = 'C:/Users/leofl/Desktop/cocktails.json'  # Pfad zur JSON-Datei
+RECIPE_FOLDER = 'C:/Users/leofl/Desktop/Rezepte'      # Zielordner für die Rezeptdateien
+BEST_COMBINATION_FILE = 'C:/Users/leofl/Desktop/best_combination.txt'  # Pfad zur besten Kombination
 
 # Parameter für Kombinationen
 COMBINATION_SIZE = 13  # Anzahl der Zutaten in der Kombination
