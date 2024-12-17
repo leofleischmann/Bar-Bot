@@ -497,7 +497,7 @@ async function saveConfig() {
             <p>Legen Sie hier fest, wo sich jedes Getränk auf der Plattform befindet. Die Plattform wird zu dieser Position gefahren, um das Getränk zu entnehmen.</p>
             <div class="config-list" id="drink-config-list">
                 {% for name, position in config.items() %}
-                {% if name != "pour_time" and not name.startswith("pump") and name not in ["move_wait", "drip_wait", "refill_wait"] %}
+                {% if name != "pour_time" and not name.startswith("pump") and name not in ["move_wait", "drip_wait", "refill_wait", "wlan_ssid", "wlan_password"] %}
                 <div class="config-item">
                     <input type="text" class="config-name" value="{{ name }}" placeholder="Getränk">
                     <input type="number" class="config-position" value="{{ position }}" placeholder="Position mm">
