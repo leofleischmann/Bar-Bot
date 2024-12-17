@@ -160,9 +160,6 @@ def check_esp_connection():
 
 @app.route("/")
 def index():
-    if not is_wifi_connected():
-        return redirect(url_for('wifi_config'))
-    
     recipes = []
     config = load_config()
 
