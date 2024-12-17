@@ -157,90 +157,6 @@ def check_esp_connection():
             esp_connected = False
             return False
 
-def is_wifi_connected():
-    try:
-        result = subprocess.run(['iwgetid'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return result.returncode == 0
-    except Exception as e:
-        print(f"Fehler beim Überprüfen der WLAN-Verbindung: {e}")
-        return False
-
-def start_hotspot():
-    try:
-        subprocess.run(["sudo", "systemctl", "start", "hostapd"], check=True)
-        subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
-        print("Hotspot gestartet.")
-    except subprocess.CalledProcessError as e:
-        print(f"Fehler beim Starten des Hotspots: {e}")
-
-def stop_hotspot():
-    try:
-        subprocess.run(["sudo", "systemctl", "stop", "hostapd"], check=True)
-        subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
-        print("Hotspot gestoppt.")
-    except subprocess.CalledProcessError as e:
-        print(f"Fehler beim Stoppen des Hotspots: {e}")
-
-def initialize_network():
-    if is_wifi_connected():
-        print("WLAN ist verbunden.")
-        stop_hotspot()
-    else:
-        print("WLAN ist nicht verbunden. Starte Hotspot.")
-        start_hotspot()
-
-# **Flask-Routen und Funktionen**
-
-@app.route("/wifi", methods=["GET", "POST"])
-def wifi_config():
-    config = load_config()
-
-    if request.method == "GET":
-        return render_template("wifi.html", wlan_ssid=config.get("wlan_ssid", ""), wlan_password=config.get("wlan_password", ""))
-    
-    elif request.method == "POST":
-        wlan_ssid = request.form.get("wlan_ssid")
-        wlan_password = request.form.get("wlan_password")
-        
-        if not wlan_ssid or not wlan_password:
-            return render_template("wifi.html", error="SSID und Passwort sind erforderlich.", wlan_ssid=wlan_ssid, wlan_password=wlan_password)
-        
-        config["wlan_ssid"] = wlan_ssid
-        config["wlan_password"] = wlan_password
-        save_config(config)
-        
-        # Konfigurieren von wpa_supplicant
-        try:
-            wpa_conf = f"""
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=DE
-
-network={{
-    ssid="{wlan_ssid}"
-    psk="{wlan_password}"
-}}
-"""
-            with open("/etc/wpa_supplicant/wpa_supplicant.conf", "a") as f:
-                f.write(wpa_conf)
-            
-            # Neuladen von wpa_supplicant
-            subprocess.run(["sudo", "wpa_cli", "-i", "wlan0", "reconfigure"], check=True)
-            
-            # Versuch, sich mit dem neuen WLAN zu verbinden
-            time.sleep(5)  # Kurze Wartezeit, um die Verbindung aufzubauen
-
-            if is_wifi_connected():
-                print("Verbindung zum WLAN erfolgreich hergestellt.")
-                stop_hotspot()
-                return redirect(url_for('index'))
-            else:
-                print("Verbindung zum WLAN fehlgeschlagen.")
-                return render_template("wifi.html", error="Verbindung zum WLAN fehlgeschlagen. Bitte überprüfen Sie SSID und Passwort.", wlan_ssid=wlan_ssid, wlan_password=wlan_password)
-        
-        except Exception as e:
-            print(f"Fehler beim Konfigurieren von WLAN: {e}")
-            return render_template("wifi.html", error="Fehler beim Konfigurieren des WLAN.", wlan_ssid=wlan_ssid, wlan_password=wlan_password)
 
 @app.route("/")
 def index():
@@ -1067,5 +983,4 @@ def validate_recipe_command(command, config):
 
 if __name__ == "__main__":
     init_serial()
-    initialize_network()
     app.run(host="0.0.0.0", port=5001, debug=True)
