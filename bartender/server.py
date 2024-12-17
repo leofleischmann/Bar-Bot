@@ -105,10 +105,20 @@ def load_config():
         print(f"Fehler beim Lesen der Konfigurationsdatei: {e}")
         return {}
 
-def save_config(config):
+def save_config(new_config):
     try:
+        # Alte Konfiguration laden
+        existing_config = load_config()
+
+        # Geschützte Schlüssel bewahren
+        protected_keys = ["wlan_ssid", "wlan_password"]
+        for key in protected_keys:
+            if key in existing_config and key not in new_config:
+                new_config[key] = existing_config[key]
+
+        # Neue Konfiguration speichern
         with open(CONFIG_FILE, "w") as file:
-            json.dump(config, file, indent=4)
+            json.dump(new_config, file, indent=4)
         print("Konfiguration erfolgreich gespeichert.")
     except Exception as e:
         print(f"Fehler beim Speichern der Konfigurationsdatei: {e}")
