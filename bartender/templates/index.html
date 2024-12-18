@@ -570,11 +570,14 @@
         }
         */
     </style>
-    <script>
+  <script>
     let espConnected = false;
     let progressInterval;
     let currentCustomIngredients = [];
     let currentRecipeForConfig = "";
+
+    // Neue Variable zur Speicherung des aktuell getrackten Rezepts
+    let trackedRecipeName = "";
 
     function updateESPStatus() {
         fetch("/esp_status")
@@ -633,7 +636,7 @@
             const res = await r.json();
             if (r.ok) {
                 showSnackbar(`Rezept "${recipeName}" erfolgreich gestartet!`, "success");
-                startProgressTracking();
+                startProgressTracking(recipeName);
             } else {
                 throw new Error(res.message || "Fehler beim Starten des Rezepts");
             }
@@ -647,7 +650,7 @@
         form.style.display = form.style.display === "block" ? "none" : "block";
     }
 
-    async function fetchProgress() {
+    async function fetchProgress(recipeName) {
         try {
             const r = await fetch("/recipe_progress");
             const d = await r.json();
@@ -660,16 +663,40 @@
 
             if (progress >= 100) {
                 clearInterval(progressInterval);
-                alert("Rezept abgeschlossen!");
+                // Fetch the last recipe notes and display them
+                try {
+                    const notesResponse = await fetch("/get_last_recipe_notes");
+                    const notesData = await notesResponse.json();
+                    if (notesResponse.ok && notesData.status === "success") {
+                        if (notesData.recipe_name === recipeName) {
+                            const recipeNameFromServer = notesData.recipe_name;
+                            const notes = notesData.notes;
+                            let message = `Rezept "${recipeNameFromServer}" abgeschlossen!`;
+                            if (notes.length > 0) {
+                                message += `\n\nNotizen:\n- ${notes.join("\n- ")}`;
+                            }
+                            alert(message);
+                        } else {
+                            // Die Notizen gehören nicht zum aktuellen Rezept
+                            console.warn(`Rezeptnamen stimmen nicht überein: erwartet "${recipeName}", erhalten "${notesData.recipe_name}"`);
+                        }
+                    } else {
+                        throw new Error(notesData.message || "Fehler beim Abrufen der Notizen.");
+                    }
+                } catch (e) {
+                    console.error("Fehler beim Abrufen der Rezeptnotizen:", e);
+                    alert("Rezept abgeschlossen, aber es konnten keine Notizen geladen werden.");
+                }
             }
         } catch (e) {
             console.error("Fehler beim Abrufen des Fortschritts:", e);
         }
     }
 
-    function startProgressTracking() {
+    function startProgressTracking(recipeName) {
+        trackedRecipeName = recipeName;
         document.getElementById("progress-container").style.display = "block";
-        progressInterval = setInterval(fetchProgress, 1000);
+        progressInterval = setInterval(() => fetchProgress(recipeName), 1000);
     }
 
     function togglePumpOptions() {
@@ -744,39 +771,61 @@
                 throw new Error(res.message || "Fehler beim Laden der Zutaten.");
             }
 
-            showRecipeSummaryModal(recipeName, res.ingredients);
+            showRecipeSummaryModal(recipeName, res.ingredients, res.notes);
         } catch (e) {
             console.error("Fehler beim Abrufen der Rezeptzutaten:", e);
             showSnackbar(`Die Zutaten des Rezepts '${recipeName}' konnten nicht geladen werden.`, "error");
         }
     }
 
-    function showRecipeSummaryModal(recipeName, ingredients) {
-        const overlay = document.getElementById("recipe-content-overlay");
-        const modal = document.getElementById("recipe-content-modal");
-        const heading = modal.querySelector("h3");
-        const ul = modal.querySelector("ul");
+    function showRecipeSummaryModal(recipeName, ingredients, notes) {
+    const overlay = document.getElementById("recipe-content-overlay");
+    const modal = document.getElementById("recipe-content-modal");
+    const heading = modal.querySelector("h3");
+    const ingredientsList = modal.querySelector("#ingredients-list");
+    const notesSection = modal.querySelector("#notes-section");
 
-        heading.textContent = `Rezeptinhalt von ${recipeName}`;
-        ul.innerHTML = ""; // Vorherige Inhalte entfernen
+    // Setze den Titel des Modals
+    heading.textContent = `Rezeptinhalt von ${recipeName}`;
 
-        ingredients.forEach(ing => {
+    // Leere den Inhalt der Zutatenliste und der Notizensektion
+    ingredientsList.innerHTML = "";
+    notesSection.innerHTML = "";
+
+    // Zutaten anzeigen
+    ingredients.forEach(ing => {
+        const li = document.createElement("li");
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = ing.name;
+        const space = document.createTextNode(" "); // Leerzeichen hinzufügen
+        const amountSpan = document.createElement("span");
+        amountSpan.textContent = `${ing.amount.toFixed(1)} cl`;
+
+        li.appendChild(nameSpan);
+        li.appendChild(space); // Leerzeichen einfügen
+        li.appendChild(amountSpan);
+        ingredientsList.appendChild(li);
+    });
+
+    // Notizen anzeigen, falls vorhanden
+    if (notes && notes.length > 0) {
+        const notesHeader = document.createElement("h4");
+        notesHeader.textContent = "Notizen:";
+        notesSection.appendChild(notesHeader);
+
+        const notesList = document.createElement("ul");
+        notes.forEach(note => {
             const li = document.createElement("li");
-            const nameSpan = document.createElement("span");
-            nameSpan.textContent = ing.name;
-            const space = document.createTextNode(" "); // Leerzeichen hinzufügen
-            const amountSpan = document.createElement("span");
-            amountSpan.textContent = `${ing.amount.toFixed(1)} cl`;
-
-            li.appendChild(nameSpan);
-            li.appendChild(space); // Leerzeichen einfügen
-            li.appendChild(amountSpan);
-            ul.appendChild(li);
+            li.textContent = note;
+            notesList.appendChild(li);
         });
-
-        overlay.style.display = "block";
-        modal.style.display = "block";
+        notesSection.appendChild(notesList);
     }
+
+    // Modal und Overlay anzeigen
+    overlay.style.display = "block";
+    modal.style.display = "block";
+}
 
     function closeRecipeContentModal() {
         const overlay = document.getElementById("recipe-content-overlay");
@@ -785,11 +834,31 @@
         modal.style.display = "none";
     }
 
-    // Passen die info-icon funktion an um das neue Modal zu nutzen
-    function fetchRecipeContent(recipeName) {
-        // Anstatt den gesamten Inhalt zeigen wir jetzt die Zusammenfassung:
-        fetchRecipeSummary(recipeName);
+async function clearCurrentRecipeNotes() {
+    try {
+        const response = await fetch("/clear_current_recipe_notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        });
+        const data = await response.json();
+        if (response.ok && data.status === "success") {
+            console.log("Aktuelle Rezeptnotizen wurden erfolgreich gelöscht.");
+        } else {
+            throw new Error(data.message || "Fehler beim Löschen der Rezeptnotizen.");
+        }
+    } catch (e) {
+        console.error("Fehler beim Löschen der Rezeptnotizen:", e);
+        showSnackbar("Fehler beim Leeren der Rezeptnotizen.", "error");
     }
+}
+
+function fetchRecipeContent(recipeName) {
+    // Zuerst die aktuellen Rezeptnotizen leeren
+    clearCurrentRecipeNotes().then(() => {
+        // Danach die Rezeptzusammenfassung abrufen
+        fetchRecipeSummary(recipeName);
+    });
+}
 
     // Custom Config Funktionen
     async function openCustomConfig(recipeName) {
@@ -869,7 +938,7 @@
             const res = await r.json();
             if (r.ok) {
                 showSnackbar(`Temporäres Rezept wurde erfolgreich gestartet!`, "success");
-                startProgressTracking();
+                startProgressTracking(data.name + ".txt");
             } else {
                 throw new Error(res.message || "Fehler beim Starten des temporären Rezepts.");
             }
@@ -915,25 +984,10 @@
         }
     }
 
-    // Funktion zum Schließen des Modals
+    // Funktion zum Schließen des fehlenden Getränke-Modals
     function closeMissingDrinksModal() {
         const overlay = document.getElementById("missing-drinks-overlay");
         const modal = document.getElementById("missing-drinks-modal");
-
-        if (!overlay || !modal) {
-            console.error("Overlay oder Modal nicht gefunden.");
-            return;
-        }
-
-        overlay.style.display = "none";
-        modal.style.display = "none";
-    }
-
-
-    // Funktion zum Schließen des Modals
-    function closeInvalidReasonsModal() {
-        const overlay = document.getElementById("invalid-reasons-overlay");
-        const modal = document.getElementById("invalid-reasons-modal");
 
         if (!overlay || !modal) {
             console.error("Overlay oder Modal nicht gefunden.");
@@ -1090,9 +1144,11 @@
 <div id="recipe-content-overlay"></div>
 <div id="recipe-content-modal">
     <h3>Rezeptinhalt</h3>
-    <ul></ul>
+    <ul id="ingredients-list"></ul>
+    <div id="notes-section"></div>
     <button id="recipe-content-close" onclick="closeRecipeContentModal()">Schließen</button>
 </div>
+
 
 <!-- Overlay & Modal für fehlende Getränke -->
 <div id="missing-drinks-overlay"></div>
