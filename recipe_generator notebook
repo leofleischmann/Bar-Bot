@@ -70,28 +70,46 @@ def generate_commands(recipe):
     """Generiert eine Liste von Befehlen für ein Rezept."""
     commands = ['start']
     for ing in recipe.get('ingredients', []):
-        ingredient_name = ing.get('ingredient')
-        amount_cl = ing.get('amount', 0)
+        ingredient_name = ing.get('ingredient', None)
+        amount = ing.get('amount', None)
         unit = ing.get('unit', '').lower()
+        label = ing.get('label', None)
+        special = ing.get('special', None)
 
-        # Prüfen, ob die Zutat gültig ist
-        if not ingredient_name or not is_valid_ingredient(ingredient_name, amount_cl, unit):
-            continue
+        if ingredient_name and is_valid_ingredient(ingredient_name, amount, unit):
+            # Verarbeitung für Zutaten mit "cl"-Einheit
+            sanitized_ingredient = sanitize_name(ingredient_name)
+            commands.append(f"move {sanitized_ingredient}")
+            commands.append("wait move_wait")
+            
+            # Menge in 2-cl-Schritte aufteilen
+            amounts = split_amount(amount)
+            for idx, amt in enumerate(amounts):
+                commands.append(f"servo cl {amt}")
+                if idx < len(amounts) - 1:
+                    commands.append("wait refill_wait")
+                else:
+                    commands.append("wait drip_wait")
+        elif ingredient_name:
+            # Zutaten ohne gültige Einheit oder Menge
+            note = f"note Zutat: {ingredient_name}"
+            if amount:
+                note += f", amount: {amount}"
+            if unit and unit != "cl":  # Nur hinzufügen, wenn die Einheit nicht "cl" ist
+                note += f" {unit}"
+            if label:
+                note += f", beschreibung: {label}"
+            commands.append(note)
+        elif special:
+            # Verarbeitung für "special"-Einträge
+            commands.append(f"note Zutat: {special}")
 
-        # Zutat normalisieren und bewegen
-        sanitized_ingredient = sanitize_name(ingredient_name)
-        commands.append(f"move {sanitized_ingredient}")
-        commands.append("wait move_wait")
-        
-        # Menge in 2-cl-Schritte aufteilen
-        amounts = split_amount(amount_cl)
-        for idx, amt in enumerate(amounts):
-            commands.append(f"servo cl {amt}")
-            if idx < len(amounts) - 1:  # Nicht nach dem letzten Schritt
-                commands.append("wait refill_wait")
-            else:
-                commands.append("wait drip_wait")
-    
+    # Anweisungen hinzufügen
+    if "preparation" in recipe:
+        commands.append(f"note Zubereitung: {recipe['preparation']}")
+    if "garnish" in recipe:
+        commands.append(f"note Anrichten mit: {recipe['garnish']}")
+
     commands.append("move 10")
     commands.append("done")
     return commands
@@ -145,7 +163,6 @@ def save_best_combination(top_ingredients, covered_recipes, filename):
             formatted_ingredients = ", ".join(ingredients).replace("_", " ").title()
             file.write(f"- {recipe_name}: {formatted_ingredients}\n")
     print(f"Beste Kombination wurde in '{filename}' gespeichert.")
-
 
 # ============================
 # Hauptfunktion
