@@ -24,6 +24,9 @@ active_recipe = None
 is_running = False
 current_progress = 0
 
+current_recipe_notes = {"recipe_name": "", "notes": []}
+current_recipe_notes_lock = Lock()
+
 def find_esp_port():
     ports = serial.tools.list_ports.comports()
     for port in ports:
@@ -157,7 +160,6 @@ def check_esp_connection():
             esp_connected = False
             return False
 
-
 @app.route("/")
 def index():
     recipes = []
@@ -247,14 +249,14 @@ def generate_and_run_temp_recipe():
 
         recipe_path = os.path.join(RECIPE_FOLDER, f"{recipe_name}.txt")
         try:
-            thread = Thread(target=execute_recipe, args=(f"{recipe_name}.txt",))
+            thread = Thread(target=execute_recipe, args=(f"{recipe_name}.txt", True))
             thread.start()
             thread.join()
         finally:
             if os.path.exists(recipe_path):
                 os.remove(recipe_path)
 
-        return jsonify({"status": "success", "message": f"Temporäres Rezept '{recipe_name}' wurde ausgeführt und gelöscht."})
+        return jsonify({"status": "success", "message": f"Temporäres Rezept '{recipe_name}.txt' wurde ausgeführt und gelöscht."})
     except Exception as e:
         print(f"Fehler bei generate_and_run_temp_recipe: {e}")
         return jsonify({"status": "error", "message": "Fehler bei der Ausführung des temporären Rezepts."}), 500
@@ -497,8 +499,8 @@ def recipe_progress():
     global current_progress
     return jsonify({"progress": current_progress})
 
-def execute_recipe(recipe_file):
-    global active_recipe, is_running, current_progress
+def execute_recipe(recipe_file, temporary=False):
+    global active_recipe, is_running, current_progress, current_recipe_notes
     active_recipe = recipe_file
     is_running = True
     current_progress = 0
@@ -515,6 +517,7 @@ def execute_recipe(recipe_file):
     aggregated_pump_duration = 0
     abtropfzeit = 0
     current_target = None
+    notes_collected = []
 
     def trigger_pump_aggregation(pump_number, duration, abtropf):
         # Pumpe auslösen und auf Pumpenlauf warten
@@ -625,10 +628,16 @@ def execute_recipe(recipe_file):
                         print(f"[DEBUG] Warte {duration} ms (Platzhalter: {wait_value}).")
                         time.sleep(duration / 1000.0)
 
+                elif command.startswith("note"):
+                    note = command[len("note"):].strip()
+                    if note:
+                        notes_collected.append(note)
+                        print(f"[DEBUG] Hinzugefügte Note: {note}")
+
                 elif command.startswith("done"):
                     if pump_in_progress:
                         pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
-                        if pump_number:
+                        if pump_number and aggregated_pump_duration > 0:
                             pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                             print(f"[DEBUG] Rezeptende: Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
                             trigger_pump_aggregation(pump_number, aggregated_pump_duration, abtropfzeit)
@@ -638,6 +647,7 @@ def execute_recipe(recipe_file):
 
                     print(f"Rezept '{recipe_file}' abgeschlossen.")
                     break
+
     except Exception as e:
         print(f"[DEBUG] Fehler beim Ausführen des Rezepts: {e}")
 
@@ -645,25 +655,44 @@ def execute_recipe(recipe_file):
     is_running = False
     active_recipe = None
 
+    # **Speichere die gesammelten Notizen für das aktuelle Rezept**
+    with current_recipe_notes_lock:
+        current_recipe_notes = {"recipe_name": recipe_file, "notes": notes_collected}
+
+    # Lösche die temporäre Rezeptdatei, wenn erforderlich
+    if temporary:
+        try:
+            os.remove(os.path.join(RECIPE_FOLDER, recipe_file))
+            print(f"[DEBUG] Temporäre Rezeptdatei '{recipe_file}' gelöscht.")
+        except Exception as e:
+            print(f"[DEBUG] Fehler beim Löschen der temporären Rezeptdatei '{recipe_file}': {e}")
+
 def execute_custom_recipe(commands, recipe_name):
-    """Execute custom recipe with original aggregator logic + debug + Platzhalter-Unterstützung."""
-    global active_recipe, is_running, current_progress
+    """Execute custom recipe with note collection."""
+    global active_recipe, is_running, current_progress, current_recipe_notes
     active_recipe = recipe_name
     is_running = True
     current_progress = 0
 
     config = load_config()
     pour_time = config.get("pour_time", 2000)
-    refill_wait = config.get("refill_wait", 5000)
+    move_wait = config.get("move_wait", 500)
     drip_wait = config.get("drip_wait", 1000)
+    refill_wait = config.get("refill_wait", 5000)
 
     pump_in_progress = False
     aggregated_pump_duration = 0
     abtropfzeit = 0
     current_target = None
+    notes_collected = []
 
-    total_commands = len(commands)
+    def trigger_pump_aggregation(pump_number, duration, abtropf):
+        resp = send_command_to_esp({"command":"pump","pump":pump_number,"duration":duration})
+        time.sleep(duration / 1000.0)
+        time.sleep(abtropf / 1000.0)
+
     try:
+        total_commands = len(commands)
         for idx, command in enumerate(commands):
             command = command.strip()
             if not command:
@@ -686,7 +715,7 @@ def execute_custom_recipe(commands, recipe_name):
                         if pump_number and aggregated_pump_duration > 0:
                             pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                             print(f"[DEBUG] (Custom) Aggregation endet bei move. Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": aggregated_pump_duration})
+                            trigger_pump_aggregation(pump_number, aggregated_pump_duration, abtropfzeit)
                         print(f"[DEBUG] (Custom) Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
                         time.sleep(abtropfzeit / 1000.0)
                         abtropfzeit = 0
@@ -694,137 +723,6 @@ def execute_custom_recipe(commands, recipe_name):
                         pump_in_progress = False
 
                     # Zielposition bestimmen
-                    if target.isdigit():
-                        position = int(target)
-                        current_target = None
-                    elif target in config:
-                        position = config[target]
-                        current_target = target
-                    else:
-                        pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == target), None)
-                        if pump_number:
-                            position = config.get(f"pump{pump_number}_position", 250)
-                            current_target = target
-                        else:
-                            print(f"[DEBUG] (Custom) Fehler: Ziel '{target}' nicht in der Konfiguration.")
-                            continue
-
-                    print(f"[DEBUG] (Custom) Bewege Plattform zu {position} mm für '{target}'...")
-                    requests.post(f"http://{ESP_IP}:{ESP_PORT}/move", json={"position": position})
-                else:
-                    print(f"[DEBUG] (Custom) Ungültiger move-Befehl: {command}")
-
-            elif command.startswith("servo"):
-                parts = command.split()
-                if len(parts) >= 3:
-                    mode = parts[1]
-                    value = parts[2]
-                    if mode == "cl":
-                        cl = float(value)
-                        pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
-                        if pump_number:
-                            pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
-                            aggregated_pump_duration += int(cl * pump_time_specific)
-                            pump_in_progress = True
-                            print(f"[DEBUG] (Custom) Aggregiere Pumpe: {cl} cl => {aggregated_pump_duration} ms total für Ziel {current_target}, Pumpe {pump_number}")
-                        else:
-                            delay = int((cl / 2) * pour_time)
-                            print(f"[DEBUG] (Custom) Servo für {cl} cl, delay {delay} ms (kein Pumpenziel).")
-                            requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
-                    elif mode == "ms":
-                        delay = int(value)
-                        print(f"[DEBUG] (Custom) Servo ms: {delay} ms Verzögerung.")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/servo", json={"delay": delay})
-                    else:
-                        print(f"[DEBUG] (Custom) Unbekannter servo Modus: {mode}")
-                else:
-                    print(f"[DEBUG] (Custom) Ungültiger servo-Befehl: {command}")
-
-            elif command.startswith("wait"):
-                parts = command.split()
-                if len(parts) == 2:
-                    wait_value = parts[1]
-                    if wait_value.isdigit():
-                        duration = int(wait_value)
-                        print(f"[DEBUG] (Custom) Warte {duration} ms (Zahl).")
-                    else:
-                        if wait_value == "move_wait":
-                            duration = move_wait
-                            print(f"[DEBUG] (Custom) Warte {duration} ms (Platzhalter: move_wait).")
-                        elif wait_value == "drip_wait":
-                            duration = drip_wait
-                            print(f"[DEBUG] (Custom) Warte {duration} ms (Platzhalter: drip_wait).")
-                        elif wait_value == "refill_wait":
-                            duration = refill_wait
-                            print(f"[DEBUG] (Custom) Warte {duration} ms (Platzhalter: refill_wait).")
-                        else:
-                            duration = 500
-                            print(f"[DEBUG] (Custom) Unbekannter wait-Platzhalter: {wait_value}, verwende 500 ms.")
-
-                    if pump_in_progress:
-                        abtropfzeit = duration
-                        print(f"[DEBUG] (Custom) Setze Abtropfzeit auf {abtropfzeit} ms.")
-                    else:
-                        time.sleep(duration / 1000.0)
-                else:
-                    print(f"[DEBUG] (Custom) Ungültiger wait-Befehl: {command}")
-
-            elif command.startswith("done"):
-                # Beende laufende Pumpenoperationen
-                if pump_in_progress:
-                    pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
-                    if pump_number and aggregated_pump_duration > 0:
-                        pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
-                        print(f"[DEBUG] (Custom) Rezeptende: Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                        requests.post(f"http://{ESP_IP}:{ESP_PORT}/pump", json={"pump": pump_number, "duration": aggregated_pump_duration})
-                    print(f"[DEBUG] (Custom) Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
-                    time.sleep(abtropfzeit / 1000.0)
-                    abtropfzeit = 0
-                    aggregated_pump_duration = 0
-                    pump_in_progress = False
-
-                print(f"Custom Rezept '{recipe_name}' abgeschlossen.")
-                break
-
-    except Exception as e:
-        print(f"[DEBUG] Fehler beim Ausführen des Custom Rezepts: {e}")
-
-    current_progress = 100
-    is_running = False
-    active_recipe = None
-
-    def trigger_pump_aggregation(pump_number, duration, abtropf):
-        resp = send_command_to_esp({"command":"pump","pump":pump_number,"duration":duration})
-        time.sleep(duration / 1000.0)
-        time.sleep(abtropf / 1000.0)
-
-    total_commands = len(commands)
-    try:
-        for idx, command in enumerate(commands):
-            command = command.strip()
-            if not command:
-                continue
-            current_progress = int((idx + 1) / total_commands * 100)
-            print(f"[DEBUG] (Custom) Verarbeite Befehl: {command}, progress: {current_progress}%")
-
-            if command.startswith("start"):
-                print(f"Custom Rezept '{recipe_name}' gestartet.")
-                continue
-
-            elif command.startswith("move"):
-                parts = command.split()
-                if len(parts) == 2:
-                    target = parts[1]
-
-                    if pump_in_progress:
-                        pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
-                        if pump_number and aggregated_pump_duration > 0:
-                            print(f"[DEBUG] (Custom) Aggregation endet bei move. Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
-                            trigger_pump_aggregation(pump_number, aggregated_pump_duration, abtropfzeit)
-                        pump_in_progress = False
-                        aggregated_pump_duration = 0
-                        abtropfzeit = 0
-
                     if target.isdigit():
                         position = int(target)
                         current_target = None
@@ -875,10 +773,6 @@ def execute_custom_recipe(commands, recipe_name):
                 parts = command.split()
                 if len(parts) == 2:
                     wait_value = parts[1]
-                    move_wait = config.get("move_wait", 500)
-                    drip_wait = config.get("drip_wait", 1000)
-                    refill_wait = config.get("refill_wait", 5000)
-
                     if wait_value.isdigit():
                         duration = int(wait_value)
                         print(f"[DEBUG] (Custom) Warte {duration} ms (Zahl).")
@@ -900,21 +794,29 @@ def execute_custom_recipe(commands, recipe_name):
                         abtropfzeit = duration
                         print(f"[DEBUG] (Custom) Setze Abtropfzeit auf {abtropfzeit} ms.")
                     else:
-                        print(f"[DEBUG] (Custom) Warte {duration} ms (Platzhalter: {wait_value}).")
                         time.sleep(duration / 1000.0)
                 else:
                     print(f"[DEBUG] (Custom) Ungültiger wait-Befehl: {command}")
 
+            elif command.startswith("note"):
+                note = command[len("note"):].strip()
+                if note:
+                    notes_collected.append(note)
+                    print(f"[DEBUG] (Custom) Hinzugefügte Note: {note}")
+
             elif command.startswith("done"):
+                # Beende laufende Pumpenoperationen
                 if pump_in_progress:
                     pump_number = next((i for i in range(1, 5) if config.get(f"pump{i}") == current_target), None)
                     if pump_number and aggregated_pump_duration > 0:
                         pump_time_specific = config.get(f"pump{pump_number}_time", 1000)
                         print(f"[DEBUG] (Custom) Rezeptende: Aktiviere Pumpe {pump_number} für {aggregated_pump_duration} ms.")
                         trigger_pump_aggregation(pump_number, aggregated_pump_duration, abtropfzeit)
-                    pump_in_progress = False
-                    aggregated_pump_duration = 0
+                    print(f"[DEBUG] (Custom) Pumpenlauf abgeschlossen, warte Abtropfzeit: {abtropfzeit} ms.")
+                    time.sleep(abtropfzeit / 1000.0)
                     abtropfzeit = 0
+                    aggregated_pump_duration = 0
+                    pump_in_progress = False
 
                 print(f"Custom Rezept '{recipe_name}' abgeschlossen.")
                 break
@@ -925,6 +827,18 @@ def execute_custom_recipe(commands, recipe_name):
     current_progress = 100
     is_running = False
     active_recipe = None
+
+    # **Speichere die gesammelten Notizen für das aktuelle Rezept**
+    with current_recipe_notes_lock:
+        current_recipe_notes = {"recipe_name": recipe_file, "notes": notes_collected}
+
+    # Lösche die temporäre Rezeptdatei, wenn erforderlich
+    if temporary:
+        try:
+            os.remove(os.path.join(RECIPE_FOLDER, recipe_file))
+            print(f"[DEBUG] Temporäre Rezeptdatei '{recipe_file}' gelöscht.")
+        except Exception as e:
+            print(f"[DEBUG] Fehler beim Löschen der temporären Rezeptdatei '{recipe_file}': {e}")
 
 @app.route("/get_recipe_ingredients")
 def get_recipe_ingredients():
@@ -942,6 +856,7 @@ def get_recipe_ingredients():
         config = load_config()
         ingredientAmounts = {}
         currentIngredient = None
+        notes = []
         for line in lines:
             line = line.strip()
             if line.startswith("move"):
@@ -953,12 +868,16 @@ def get_recipe_ingredients():
                 if currentIngredient not in ingredientAmounts:
                     ingredientAmounts[currentIngredient] = 0.0
                 ingredientAmounts[currentIngredient] += val
+            elif line.startswith("note"):
+                note = line[len("note"):].strip()
+                if note:
+                    notes.append(note)
 
         ing_list = []
         for ing, amt in ingredientAmounts.items():
             ing_list.append({"name": ing, "amount": amt})
 
-        return jsonify({"status": "success", "ingredients": ing_list})
+        return jsonify({"status": "success", "ingredients": ing_list, "notes": notes})
     except Exception as e:
         print(e)
         return jsonify({"status": "error", "message": "Fehler beim Lesen des Rezepts"}), 500
@@ -990,6 +909,7 @@ def run_custom_recipe():
 
         currentIngredient = None
         new_commands = []
+        notes_collected = []
         for line in original_lines:
             line = line.strip()
             if line.startswith("move"):
@@ -1003,6 +923,11 @@ def run_custom_recipe():
                 new_val = ing_map.get(currentIngredient, original_val)
                 parts[2] = str(new_val)
                 new_commands.append(" ".join(parts))
+            elif line.startswith("note"):
+                note = line[len("note"):].strip()
+                if note:
+                    notes_collected.append(note)
+                new_commands.append(line)
             else:
                 new_commands.append(line)
 
@@ -1012,7 +937,6 @@ def run_custom_recipe():
     except Exception as e:
         print(e)
         return jsonify({"status": "error", "message": "Fehler beim Anpassen des Rezepts."}), 500
-
 
 @app.route("/calibrate", methods=["GET", "POST"])
 def calibrate():
@@ -1110,6 +1034,25 @@ def validate_recipe_command(command, config):
         return False, f"Unbekannter Befehl: {command}"
 
     return True, None
+
+
+@app.route("/clear_current_recipe_notes", methods=["POST"])
+def clear_current_recipe_notes():
+    global current_recipe_notes
+    with current_recipe_notes_lock:
+        current_recipe_notes = {"recipe_name": "", "notes": []}
+    return jsonify({"status": "success", "message": "Aktuelle Rezeptnotizen wurden gelöscht."})
+
+
+@app.route("/get_last_recipe_notes", methods=["GET"])
+def get_last_recipe_notes():
+    global current_recipe_notes
+    with current_recipe_notes_lock:
+        return jsonify({
+            "status": "success",
+            "recipe_name": current_recipe_notes["recipe_name"],
+            "notes": current_recipe_notes["notes"]
+        })
 
 if __name__ == "__main__":
     init_serial()
