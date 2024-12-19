@@ -499,9 +499,12 @@ def recipe_progress():
     global current_progress
     return jsonify({"progress": current_progress})
 
-def execute_recipe(recipe_file, temporary=False):
+def execute_recipe(recipe_file, temporary=False, original_recipe_name=None):
     global active_recipe, is_running, current_progress, current_recipe_notes
-    active_recipe = recipe_file
+    if original_recipe_name:
+        active_recipe = original_recipe_name
+    else:
+        active_recipe = recipe_file
     is_running = True
     current_progress = 0
 
@@ -657,7 +660,7 @@ def execute_recipe(recipe_file, temporary=False):
 
     # **Speichere die gesammelten Notizen für das aktuelle Rezept**
     with current_recipe_notes_lock:
-        current_recipe_notes = {"recipe_name": recipe_file, "notes": notes_collected}
+        current_recipe_notes = {"recipe_name": original_recipe_name or recipe_file, "notes": notes_collected}
 
     # Lösche die temporäre Rezeptdatei, wenn erforderlich
     if temporary:
@@ -937,6 +940,79 @@ def run_custom_recipe():
     except Exception as e:
         print(e)
         return jsonify({"status": "error", "message": "Fehler beim Anpassen des Rezepts."}), 500
+
+@app.route("/run_recipe_without_missing", methods=["POST"])
+def run_recipe_without_missing():
+    global is_running
+
+    if is_running:
+        return jsonify({"status": "error", "message": "Ein Rezept wird bereits ausgeführt."}), 400
+
+    if not check_esp_connection():
+        return jsonify({"status": "error", "message": "ESP ist nicht verbunden."}), 400
+
+    data = request.json
+    recipe_name = data.get("recipe")
+    missing_ingredients = data.get("missing_ingredients", [])
+
+    if not recipe_name or not os.path.exists(os.path.join(RECIPE_FOLDER, recipe_name)):
+        return jsonify({"status": "error", "message": "Ungültiges Rezept."}), 400
+
+    try:
+        with open(os.path.join(RECIPE_FOLDER, recipe_name), "r") as f:
+            commands = f.readlines()
+
+        # Filtere Befehle, die mit den fehlenden Zutaten verbunden sind
+        filtered_commands = []
+        skip = False
+        for line in commands:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith("move"):
+                parts = line.split()
+                if len(parts) != 2:
+                    # Ungültiger move-Befehl, füge ihn hinzu und setze skip zurück
+                    filtered_commands.append(line)
+                    skip = False
+                    continue
+
+                ingredient = parts[1]
+                if ingredient in missing_ingredients:
+                    skip = True
+                else:
+                    skip = False
+
+                filtered_commands.append(line)
+            elif skip:
+                # Überspringe Befehle bis zum nächsten "wait drip_wait"
+                if line.startswith("wait") and "drip_wait" in line:
+                    skip = False
+                    filtered_commands.append(line)  # Füge den "wait drip_wait" Befehl hinzu
+                else:
+                    continue
+            else:
+                filtered_commands.append(line)
+
+        # Erstelle eine temporäre Rezeptdatei ohne die fehlenden Zutaten
+        temp_recipe_name = f"temp_skip_{int(time.time())}.txt"
+        temp_recipe_path = os.path.join(RECIPE_FOLDER, temp_recipe_name)
+        with open(temp_recipe_path, "w") as f:
+            f.write("\n".join(filtered_commands))
+
+        # Führe das temporäre Rezept aus und setze active_recipe auf den Originalrezeptnamen
+        thread = Thread(target=execute_recipe, args=(temp_recipe_name, True, recipe_name))
+        thread.start()
+
+        return jsonify({"status": "success", "message": f"Rezept '{recipe_name}' ohne fehlende Zutaten gestartet."})
+
+    except Exception as e:
+        print(f"Fehler beim Ausführen des Rezepts ohne fehlende Zutaten: {e}")
+        return jsonify({"status": "error", "message": "Fehler beim Ausführen des Rezepts ohne fehlende Zutaten."}), 500
+
+
+
 
 @app.route("/calibrate", methods=["GET", "POST"])
 def calibrate():
