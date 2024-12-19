@@ -165,16 +165,27 @@ def index():
     recipes = []
     config = load_config()
 
+    # Extrahiere gültige Getränkenamen aus der Konfiguration
+    # Ausschluss von Schlüsseln, die mit 'pump' beginnen oder spezielle Parameter sind
+    excluded_keys = ["pour_time", "pump_time", "pumpen", "move_wait", "drip_wait", "refill_wait"]
+    drink_names = [
+        key for key in config.keys()
+        if not key.startswith("pump") and key not in excluded_keys
+    ]
+
+    # Füge Pumpengetränke hinzu, falls vorhanden
     for i in range(1, 5):
         pump_drink = config.get(f"pump{i}")
-        if pump_drink:
-            config[pump_drink] = config.get("pumpen", 250)
+        if pump_drink and pump_drink not in drink_names:
+            drink_names.append(pump_drink)
 
     for filename in os.listdir(RECIPE_FOLDER):
         if filename.endswith(".txt"):
             recipe_path = os.path.join(RECIPE_FOLDER, filename)
             is_valid = True
             invalid_reasons = []
+            has_move_to_drink = False  # Flag zur Überprüfung, ob ein gültiger 'move' vorhanden ist
+
             try:
                 with open(recipe_path, "r") as file:
                     for line in file:
@@ -188,6 +199,8 @@ def index():
                                 invalid_reasons.append(f"Ungültiger move-Befehl: {command}")
                                 continue
                             target = args[1]
+                            if target in drink_names:
+                                has_move_to_drink = True  # Gültiger 'move' zu einem Getränk gefunden
                             if not target.isdigit() and target not in config:
                                 is_valid = False
                                 invalid_reasons.append(f"Kein Eintrag für '{target}' in der Konfiguration")
@@ -215,6 +228,10 @@ def index():
                             else:
                                 is_valid = False
                                 invalid_reasons.append(f"Ungültiger servo-Befehl: {command}")
+                # Nach der Verarbeitung aller Zeilen überprüfen, ob ein gültiger 'move' gefunden wurde
+                if not has_move_to_drink:
+                    is_valid = False
+                    invalid_reasons.append("Keine 'move' Befehle zu gültigen Getränken vorhanden.")
             except Exception as e:
                 is_valid = False
                 invalid_reasons.append(f"Fehler beim Lesen des Rezepts: {e}")
@@ -223,6 +240,7 @@ def index():
 
     esp_connected_local = check_esp_connection()
     return render_template("index.html", recipes=recipes, esp_connected=esp_connected_local, active_recipe=active_recipe, is_running=is_running)
+
 
 @app.route("/esp_status")
 def esp_status():
