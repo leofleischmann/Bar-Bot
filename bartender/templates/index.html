@@ -569,7 +569,154 @@
             margin-left: 10px; /* Anpassung des Abstands nach Bedarf */
         }
         */
-    </style>
+
+        #run-without-button {
+    background-color: #ffc107; /* Gelbe Farbe für Aufmerksamkeit */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+#run-without-button:hover {
+    background-color: #e0a800;
+}
+
+</style>
+</head>
+<body>
+<header>
+    <div class="header-container">
+        <h1>Drinks Übersicht</h1>
+        <div id="esp-status">
+            {% if esp_connected %}
+            <span class="status connected">
+                <span class="indicator"></span> ESP verbunden
+            </span>
+            {% else %}
+            <span class="status disconnected">
+                <span class="indicator"></span> ESP nicht verbunden
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<main>
+
+    <!-- Suchfunktion hinzufügen -->
+    <div id="search-container">
+        <input type="text" id="search-input" placeholder="Nach Drinks suchen..." />
+    </div>
+
+    <div id="progress-container">
+        <p id="progress-text">Fortschritt: 0%</p>
+        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+        
+    <nav>
+        <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
+        <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
+    </nav>
+
+    <h2>Verfügbare Drinks</h2>
+    <div class="grid-container">
+        {% for recipe in recipes|sort(attribute='name') if recipe.valid and not recipe.name.startswith("temp_recipe") %}
+        <div class="grid-item valid">
+            <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+            <div class="config-icon" onclick="openCustomConfig('{{ recipe.name }}')">⚙</div>
+            <div class="letter">{{ recipe.name[0] }}</div>
+            <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+            <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h2>Nicht verfügbare Drinks</h2>
+    <div class="grid-container">
+        {% for recipe in recipes|sort(attribute='name') if not recipe.valid and not recipe.name.startswith("temp_recipe") %}
+        <div class="grid-item invalid">
+            <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
+            <div class="letter">{{ recipe.name[0] }}</div>
+            <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
+            <button class="start-button" onclick="showInvalidReasons('{{ recipe.name }}')">Details anzeigen</button>
+            <!-- Unsichtbare Liste der Gründe -->
+            <div id="reasons-{{ recipe.name }}" style="display:none;">
+                {% for reason in recipe.reasons %}
+                    {{ reason }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="toggle-manual">
+        <button onclick="toggleManualControl()">Manuelle Steuerung anzeigen/ausblenden</button>
+    </div>
+
+    <form onsubmit="event.preventDefault(); sendManualCommand();">
+        <label for="manualCommandType">Befehlstyp:</label>
+        <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
+            <option value="move">Plattform bewegen (mm)</option>
+            <option value="servo">Servo bewegen (ms)</option>
+            <option value="pump">Pumpe aktivieren (ms)</option>
+        </select>
+        <div id="pumpOptions" style="display:none;">
+            <label for="pumpNumber">Pumpe:</label>
+            <select id="pumpNumber" name="pumpNumber" required>
+                <option value="1">Pumpe 1</option>
+                <option value="2">Pumpe 2</option>
+                <option value="3">Pumpe 3</option>
+                <option value="4">Pumpe 4</option>
+            </select>
+        </div>
+        <label for="manualValue">Wert:</label>
+        <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
+        <button type="submit">Befehl senden</button>
+    </form>
+
+</main>
+<footer>
+    &copy; 2024 Leo Fleischmann
+</footer>
+
+<div id="snackbar" class="snackbar"></div>
+
+<!-- Overlay & Modal für Custom Config -->
+<div id="custom-config-overlay"></div>
+<div id="custom-config-modal">
+    <h3>Rezept anpassen</h3>
+    <ul></ul>
+    <div id="custom-config-modal-buttons">
+        <button id="custom-config-modal-cancel" onclick="closeCustomConfigModal()">Abbrechen</button>
+        <button id="custom-config-modal-start" onclick="startCustomConfigRecipe()">Starten</button>
+    </div>
+</div>
+
+<!-- Overlay & Modal für Rezeptzutaten-Übersicht -->
+<div id="recipe-content-overlay"></div>
+<div id="recipe-content-modal">
+    <h3>Rezeptinhalt</h3>
+    <ul id="ingredients-list"></ul>
+    <div id="notes-section"></div>
+    <button id="recipe-content-close" onclick="closeRecipeContentModal()">Schließen</button>
+</div>
+
+
+<!-- Overlay & Modal für fehlende Getränke -->
+<div id="missing-drinks-overlay"></div>
+<div id="missing-drinks-modal">
+    <h3>Fehlende Getränke</h3>
+    <ul id="missing-drinks-list"></ul>
+    <button id="run-without-button">Ohne ausführen</button>
+    <button id="close-missing-drinks" onclick="closeMissingDrinksModal()">Schließen</button>
+</div>
+
   <script>
     let espConnected = false;
     let progressInterval;
@@ -949,40 +1096,92 @@ function fetchRecipeContent(recipeName) {
         }
     }
 
-    function showInvalidReasons(recipeName) {
-        const reasonsDiv = document.getElementById(`reasons-${recipeName}`);
-        const overlay = document.getElementById("missing-drinks-overlay");
-        const modal = document.getElementById("missing-drinks-modal");
-        const reasonsList = document.getElementById("missing-drinks-list");
+// Globale Variable zur Verfolgung des aktuellen ungültigen Rezepts
+let currentInvalidRecipe = "";
 
-        if (!reasonsDiv || !overlay || !modal || !reasonsList) {
-            console.error("Ein erforderliches Element wurde nicht gefunden.");
-            return;
-        }
+// Funktion zum Anzeigen der Gründe für die Ungültigkeit und Setzen des aktuellen Rezepts
+function showInvalidReasons(recipeName) {
+    currentInvalidRecipe = recipeName;
+    const reasonsDiv = document.getElementById(`reasons-${recipeName}`);
+    const overlay = document.getElementById("missing-drinks-overlay");
+    const modal = document.getElementById("missing-drinks-modal");
+    const reasonsList = document.getElementById("missing-drinks-list");
 
-        const reasons = reasonsDiv.textContent.trim();
-        if (reasons) {
-            // Bereinigen und Gründe formatieren
-            reasonsList.innerHTML = ""; // Vorherige Inhalte entfernen
-            reasons.split(",").forEach(reason => {
-                const formattedReason = reason
-                    .replace("Kein Eintrag für '", "")
-                    .replace("' in der Konfiguration", "")
-                    .trim();
-                if (formattedReason) {
-                    const li = document.createElement("li");
-                    li.textContent = formattedReason;
-                    reasonsList.appendChild(li);
-                }
-            });
-
-            // Modal anzeigen
-            overlay.style.display = "block";
-            modal.style.display = "block";
-        } else {
-            showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
-        }
+    if (!reasonsDiv || !overlay || !modal || !reasonsList) {
+        console.error("Ein erforderliches Element wurde nicht gefunden.");
+        return;
     }
+
+    const reasons = reasonsDiv.textContent.trim();
+    if (reasons) {
+        // Bereinigen und Gründe formatieren
+        reasonsList.innerHTML = ""; // Vorherige Inhalte entfernen
+        reasons.split(",").forEach(reason => {
+            const formattedReason = reason
+                .replace("Kein Eintrag für '", "")
+                .replace("' in der Konfiguration", "")
+                .trim();
+            if (formattedReason) {
+                const li = document.createElement("li");
+                li.textContent = formattedReason;
+                reasonsList.appendChild(li);
+            }
+        });
+
+        // Modal anzeigen
+        overlay.style.display = "block";
+        modal.style.display = "block";
+    } else {
+        showSnackbar("Es gibt keine spezifischen Gründe für die Ungültigkeit dieses Rezepts.", "error");
+    }
+}
+
+// Event Listener für den "Ohne ausführen" Button
+document.getElementById("run-without-button").addEventListener("click", function() {
+    const recipeName = currentInvalidRecipe;
+    if (!recipeName) {
+        showSnackbar("Rezeptname fehlt.", "error");
+        return;
+    }
+
+    // Fehlende Zutaten aus dem Modal extrahieren
+    const reasonsList = document.getElementById("missing-drinks-list");
+    const missingIngredients = [];
+    reasonsList.querySelectorAll("li").forEach(li => {
+        missingIngredients.push(li.textContent.trim());
+    });
+
+    if (missingIngredients.length === 0) {
+        showSnackbar("Keine fehlenden Zutaten gefunden.", "error");
+        return;
+    }
+
+    // POST-Anfrage an /run_recipe_without_missing senden
+    fetch("/run_recipe_without_missing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            recipe: recipeName,
+            missing_ingredients: missingIngredients
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            showSnackbar(data.message, "success");
+            startProgressTracking(recipeName);
+            // Modal schließen
+            closeMissingDrinksModal();
+        } else {
+            showSnackbar(data.message, "error");
+        }
+    })
+    .catch(error => {
+        console.error("Fehler beim Ausführen des Rezepts ohne fehlende Zutaten:", error);
+        showSnackbar("Fehler beim Ausführen des Rezepts ohne fehlende Zutaten.", "error");
+    });
+});
+
 
     // Funktion zum Schließen des fehlenden Getränke-Modals
     function closeMissingDrinksModal() {
@@ -1028,135 +1227,5 @@ function fetchRecipeContent(recipeName) {
     document.addEventListener("DOMContentLoaded", setupSearchFunctionality);
 
     </script>
-</head>
-<body>
-<header>
-    <div class="header-container">
-        <h1>Drinks Übersicht</h1>
-        <div id="esp-status">
-            {% if esp_connected %}
-            <span class="status connected">
-                <span class="indicator"></span> ESP verbunden
-            </span>
-            {% else %}
-            <span class="status disconnected">
-                <span class="indicator"></span> ESP nicht verbunden
-            </span>
-            {% endif %}
-        </div>
-    </div>
-</header>
-
-<main>
-
-    <!-- Suchfunktion hinzufügen -->
-    <div id="search-container">
-        <input type="text" id="search-input" placeholder="Nach Drinks suchen..." />
-    </div>
-
-    <div id="progress-container">
-        <p id="progress-text">Fortschritt: 0%</p>
-        <div style="width: 100%; background-color: #ccc; border-radius: 10px;">
-            <div id="progress-bar"></div>
-        </div>
-    </div>
-        
-    <nav>
-        <button onclick="window.location.href='/rezepte'">Rezepte verwalten</button>
-        <button onclick="window.location.href='/config'">Konfiguration verwalten</button>
-    </nav>
-
-    <h2>Verfügbare Drinks</h2>
-    <div class="grid-container">
-        {% for recipe in recipes|sort(attribute='name') if recipe.valid and not recipe.name.startswith("temp_recipe") %}
-        <div class="grid-item valid">
-            <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-            <div class="config-icon" onclick="openCustomConfig('{{ recipe.name }}')">⚙</div>
-            <div class="letter">{{ recipe.name[0] }}</div>
-            <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-            <button class="start-button" onclick="startRecipe('{{ recipe.name }}')">Starten</button>
-        </div>
-        {% endfor %}
-    </div>
-
-    <h2>Nicht verfügbare Drinks</h2>
-    <div class="grid-container">
-        {% for recipe in recipes|sort(attribute='name') if not recipe.valid and not recipe.name.startswith("temp_recipe") %}
-        <div class="grid-item invalid">
-            <div class="info-icon" onclick="fetchRecipeContent('{{ recipe.name }}')">?</div>
-            <div class="letter">{{ recipe.name[0] }}</div>
-            <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
-            <button class="start-button" onclick="showInvalidReasons('{{ recipe.name }}')">Details anzeigen</button>
-            <!-- Unsichtbare Liste der Gründe -->
-            <div id="reasons-{{ recipe.name }}" style="display:none;">
-                {% for reason in recipe.reasons %}
-                    {{ reason }}{% if not loop.last %}, {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="toggle-manual">
-        <button onclick="toggleManualControl()">Manuelle Steuerung anzeigen/ausblenden</button>
-    </div>
-
-    <form onsubmit="event.preventDefault(); sendManualCommand();">
-        <label for="manualCommandType">Befehlstyp:</label>
-        <select id="manualCommandType" name="manualCommandType" onchange="togglePumpOptions()" required>
-            <option value="move">Plattform bewegen (mm)</option>
-            <option value="servo">Servo bewegen (ms)</option>
-            <option value="pump">Pumpe aktivieren (ms)</option>
-        </select>
-        <div id="pumpOptions" style="display:none;">
-            <label for="pumpNumber">Pumpe:</label>
-            <select id="pumpNumber" name="pumpNumber" required>
-                <option value="1">Pumpe 1</option>
-                <option value="2">Pumpe 2</option>
-                <option value="3">Pumpe 3</option>
-                <option value="4">Pumpe 4</option>
-            </select>
-        </div>
-        <label for="manualValue">Wert:</label>
-        <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
-        <button type="submit">Befehl senden</button>
-    </form>
-
-</main>
-<footer>
-    &copy; 2024 Leo Fleischmann
-</footer>
-
-<div id="snackbar" class="snackbar"></div>
-
-<!-- Overlay & Modal für Custom Config -->
-<div id="custom-config-overlay"></div>
-<div id="custom-config-modal">
-    <h3>Rezept anpassen</h3>
-    <ul></ul>
-    <div id="custom-config-modal-buttons">
-        <button id="custom-config-modal-cancel" onclick="closeCustomConfigModal()">Abbrechen</button>
-        <button id="custom-config-modal-start" onclick="startCustomConfigRecipe()">Starten</button>
-    </div>
-</div>
-
-<!-- Overlay & Modal für Rezeptzutaten-Übersicht -->
-<div id="recipe-content-overlay"></div>
-<div id="recipe-content-modal">
-    <h3>Rezeptinhalt</h3>
-    <ul id="ingredients-list"></ul>
-    <div id="notes-section"></div>
-    <button id="recipe-content-close" onclick="closeRecipeContentModal()">Schließen</button>
-</div>
-
-
-<!-- Overlay & Modal für fehlende Getränke -->
-<div id="missing-drinks-overlay"></div>
-<div id="missing-drinks-modal">
-    <h3>Fehlende Getränke</h3>
-    <ul id="missing-drinks-list"></ul>
-    <button id="close-missing-drinks" onclick="closeMissingDrinksModal()">Schließen</button>
-</div>
-
 </body>
 </html>
