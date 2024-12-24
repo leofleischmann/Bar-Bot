@@ -278,28 +278,56 @@ void disableDriver() {
 }
 
 void calibratePlatform() {
-  Serial.println("DEBUG: Kalibrierung: Bewege zu Endschalter 1...");
-  enableDriver();
+    Serial.println("DEBUG: Kalibrierung: Bewege zu Endschalter 1...");
+    enableDriver();
 
-  stepper.setSpeed(-calibMaxSpeed);
-  while (digitalRead(LIMIT_SWITCH1_PIN) == LOW) {
-    stepper.runSpeed();
-  }
-  stepper.stop();
-  stepper.setCurrentPosition(0);
-  Serial.println("DEBUG: Kalibrierung: Endschalter 1 erreicht. Position auf 0 gesetzt.");
+    stepper.setSpeed(-calibMaxSpeed);
 
-  Serial.println("DEBUG: Kalibrierung: Bewege zu Endschalter 2...");
-  stepper.setSpeed(calibMaxSpeed);
-  while (digitalRead(LIMIT_SWITCH2_PIN) == LOW) {
-    stepper.runSpeed();
-  }
-  stepper.stop();
-  maxSteps = stepper.currentPosition();
-  Serial.printf("DEBUG: Kalibrierung abgeschlossen. Maximale Schritte: %ld\n", maxSteps);
+    // Starte die Kalibrierungsfahrt in Richtung Endschalter 1
+    while (true) {
+        // So lange der Schalter NICHT gedrückt ist (LOW), weiterfahren
+        if (digitalRead(LIMIT_SWITCH1_PIN) == LOW) {
+            stepper.runSpeed();
+        } else {
+            // Sobald der Pin HIGH meldet, kurz warten, um Prellen zu vermeiden
+            delay(50); 
+            // Jetzt erneut prüfen, ob der Schalter immer noch HIGH ist
+            if (digitalRead(LIMIT_SWITCH1_PIN) == HIGH) {
+                // Debounce-Bestätigung: Schalter wirklich ausgelöst
+                break;
+            }
+        }
+    }
 
-  disableDriver();
+    // Schritt-Motor anhalten
+    stepper.stop();
+    // Bezugsposition auf 0 setzen
+    stepper.setCurrentPosition(0);
+    Serial.println("DEBUG: Kalibrierung: Endschalter 1 erreicht. Position auf 0 gesetzt.");
+
+    Serial.println("DEBUG: Kalibrierung: Bewege zu Endschalter 2...");
+    stepper.setSpeed(calibMaxSpeed);
+
+    // Fahre in die andere Richtung bis Endschalter 2
+    while (true) {
+        if (digitalRead(LIMIT_SWITCH2_PIN) == LOW) {
+            stepper.runSpeed();
+        } else {
+            delay(50);
+            if (digitalRead(LIMIT_SWITCH2_PIN) == HIGH) {
+                break;
+            }
+        }
+    }
+
+    stepper.stop();
+    // Maximale Schritte speichern
+    maxSteps = stepper.currentPosition();
+    Serial.printf("DEBUG: Kalibrierung abgeschlossen. Maximale Schritte: %ld\n", maxSteps);
+
+    disableDriver();
 }
+
 
 void moveToMM(int targetMM) {
   if (targetMM < 0 || targetMM > maxMillimeters) {
