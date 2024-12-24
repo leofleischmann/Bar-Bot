@@ -1153,6 +1153,32 @@ def get_last_recipe_notes():
             "notes": current_recipe_notes["notes"]
         })
 
+
+@app.route("/reconnect_esp", methods=["POST"])
+def reconnect_esp():
+    global esp_connected
+
+    if is_running:
+        return jsonify({
+            "status": "error",
+            "message": "Rezept läuft gerade. Bitte später erneut versuchen."
+        }), 400
+
+    init_serial()
+
+    if esp_connected:
+        return jsonify({
+            "status": "success",
+            "message": "ESP erfolgreich neu verbunden."
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "message": "Neuverbindung zum ESP fehlgeschlagen."
+        }), 500
+
+
 if __name__ == "__main__":
     init_serial()
+    
     app.run(host="0.0.0.0", port=5001, debug=True)
