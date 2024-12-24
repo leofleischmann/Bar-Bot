@@ -67,6 +67,22 @@
             background-color: red;
         }
 
+        /* Neuer Stil für den Reconnect-Button */
+        #reconnect-button {
+            background-color: #ffc107;
+            color: #333;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-left: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        #reconnect-button:hover {
+            background-color: #e0a800;
+        }
+
         @media (max-width: 600px) {
             .header-container {
                 flex-direction: column;
@@ -587,13 +603,6 @@
                 width: 100%;
             }
         }
-
-        /* Optional: CSS-Methode zur Abstandsanpassung */
-        /*
-        #recipe-content-modal ul li span + span {
-            margin-left: 10px; /* Anpassung des Abstands nach Bedarf */
-        }
-        */
     </style>
 </head>
 <body>
@@ -609,14 +618,13 @@
                 <span class="status disconnected">
                     <span class="indicator"></span> ESP nicht verbunden
                 </span>
+                <button id="reconnect-button" onclick="reconnectESP()">Neu verbinden</button>
                 {% endif %}
             </div>
         </div>
     </header>
 
     <main>
-
-        <!-- Suchfunktion hinzufügen -->
         <div id="search-container">
             <input type="text" id="search-input" placeholder="Nach Drinks suchen..." />
         </div>
@@ -654,7 +662,6 @@
                 <div class="letter">{{ recipe.name[0] }}</div>
                 <div class="name">{{ recipe.name.replace('.txt', '') }}</div>
                 <button class="start-button" onclick="showInvalidReasons('{{ recipe.name }}')">Details anzeigen</button>
-                <!-- Unsichtbare Liste der Gründe -->
                 <div id="reasons-{{ recipe.name }}" style="display:none;">
                     {% for reason in recipe.reasons %}
                         {{ reason }}{% if not loop.last %}, {% endif %}
@@ -688,15 +695,16 @@
             <input type="number" id="manualValue" name="manualValue" placeholder="Wert eingeben..." required>
             <button type="submit">Befehl senden</button>
         </form>
-
     </main>
+
     <footer>
         &copy; 2024 Leo Fleischmann
     </footer>
 
+    <!-- Snackbar -->
     <div id="snackbar" class="snackbar"></div>
 
-    <!-- Overlay & Modal für Custom Config -->
+    <!-- Overlays / Modals für Custom Config -->
     <div id="custom-config-overlay"></div>
     <div id="custom-config-modal">
         <h3>Rezept anpassen</h3>
@@ -707,7 +715,7 @@
         </div>
     </div>
 
-    <!-- Overlay & Modal für Rezeptzutaten-Übersicht -->
+    <!-- Overlay / Modal für Rezeptzutaten -->
     <div id="recipe-content-overlay"></div>
     <div id="recipe-content-modal">
         <h3>Rezeptinhalt</h3>
@@ -716,8 +724,7 @@
         <button id="recipe-content-close" class="action-button" onclick="closeRecipeContentModal()">Schließen</button>
     </div>
 
-
-    <!-- Overlay & Modal für fehlende Getränke -->
+    <!-- Overlay / Modal für fehlende Getränke -->
     <div id="missing-drinks-overlay"></div>
     <div id="missing-drinks-modal">
         <h3>Fehlende Getränke</h3>
@@ -727,14 +734,12 @@
             <button id="close-missing-drinks" class="action-button" onclick="closeMissingDrinksModal()">Schließen</button>
         </div>
     </div>
-    
+
     <script>
         let espConnected = false;
         let progressInterval;
         let currentCustomIngredients = [];
         let currentRecipeForConfig = "";
-
-        // Neue Variable zur Speicherung des aktuell getrackten Rezepts
         let trackedRecipeName = "";
 
         function updateESPStatus() {
@@ -747,26 +752,48 @@
                         statusElement.innerHTML = `
                             <span class="status connected">
                                 <span class="indicator"></span> ESP verbunden
-                            </span>`;
+                            </span>
+                            <!-- Button NICHT anzeigen, wenn verbunden -->
+                        `;
                     } else {
                         statusElement.innerHTML = `
                             <span class="status disconnected">
                                 <span class="indicator"></span> ESP nicht verbunden
-                            </span>`;
+                            </span>
+                            <button id="reconnect-button" onclick="reconnectESP()">Neu verbinden</button>
+                        `;
                     }
-                }).catch(error => {
+                })
+                .catch(error => {
                     console.error("Fehler beim Abrufen des ESP-Status:", error);
                     espConnected = false;
                     const statusElement = document.getElementById("esp-status");
                     statusElement.innerHTML = `
                         <span class="status disconnected">
                             <span class="indicator"></span> ESP nicht verbunden
-                        </span>`;
+                        </span>
+                        <button id="reconnect-button" onclick="reconnectESP()">Neu verbinden</button>
+                    `;
                 });
         }
-
         updateESPStatus();
         setInterval(updateESPStatus, 5000);
+
+        function reconnectESP() {
+            fetch("/reconnect_esp", { method: "POST" })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        showSnackbar(data.message, "success");
+                        updateESPStatus();
+                    } else {
+                        showSnackbar(data.message, "error");
+                    }
+                })
+                .catch(err => {
+                    showSnackbar("Fehler beim Reconnect-Versuch.", "error");
+                });
+        }
 
         function showSnackbar(message, type = "success") {
             const snackbar = document.getElementById("snackbar");
@@ -784,7 +811,6 @@
                 showSnackbar("ESP ist nicht verbunden.", "error");
                 return;
             }
-
             try {
                 const r = await fetch("/run_recipe", {
                     method: "POST",
@@ -805,7 +831,7 @@
 
         function toggleManualControl() {
             const form = document.querySelector("form");
-            form.style.display = form.style.display === "block" ? "none" : "block";
+            form.style.display = (form.style.display === "block") ? "none" : "block";
         }
 
         async function fetchProgress(recipeName) {
@@ -821,7 +847,6 @@
 
                 if (progress >= 100) {
                     clearInterval(progressInterval);
-                    // Fetch the last recipe notes and display them
                     try {
                         const notesResponse = await fetch("/get_last_recipe_notes");
                         const notesData = await notesResponse.json();
@@ -835,7 +860,6 @@
                                 }
                                 alert(message);
                             } else {
-                                // Die Notizen gehören nicht zum aktuellen Rezept
                                 console.warn(`Rezeptnamen stimmen nicht überein: erwartet "${recipeName}", erhalten "${notesData.recipe_name}"`);
                             }
                         } else {
@@ -860,11 +884,7 @@
         function togglePumpOptions() {
             const commandType = document.getElementById("manualCommandType").value;
             const pumpOptions = document.getElementById("pumpOptions");
-            if (commandType === "pump") {
-                pumpOptions.style.display = "block";
-            } else {
-                pumpOptions.style.display = "none";
-            }
+            pumpOptions.style.display = (commandType === "pump") ? "block" : "none";
         }
 
         async function sendManualCommand() {
@@ -877,12 +897,11 @@
                     showSnackbar("Bitte gültige Pumpennummer und Dauer eingeben.", "error");
                     return;
                 }
-
                 try {
                     const r = await fetch("/send_command", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ type: commandType, pump: pumpNumber, value: value })
+                        body: JSON.stringify({ type: commandType, pump: pumpNumber, value })
                     });
                     const res = await r.json();
                     if (r.ok) {
@@ -894,18 +913,16 @@
                     console.error("Fehler beim Senden:", e);
                     showSnackbar("Problem beim Senden des Befehls.", "error");
                 }
-
             } else {
                 if (!commandType || isNaN(value)) {
                     showSnackbar("Bitte gültigen Befehl und Wert eingeben.", "error");
                     return;
                 }
-
                 try {
                     const r = await fetch("/send_command", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ type: commandType, value: value })
+                        body: JSON.stringify({ type: commandType, value })
                     });
                     const res = await r.json();
                     if (r.ok) {
@@ -920,76 +937,10 @@
             }
         }
 
-        async function fetchRecipeSummary(recipeName) {
-            // Statt get_recipe_content nun get_recipe_ingredients aufrufen
-            try {
-                const r = await fetch(`/get_recipe_ingredients?recipe=${encodeURIComponent(recipeName)}`);
-                const res = await r.json();
-                if (!r.ok || res.status !== "success") {
-                    throw new Error(res.message || "Fehler beim Laden der Zutaten.");
-                }
-
-                showRecipeSummaryModal(recipeName, res.ingredients, res.notes);
-            } catch (e) {
-                console.error("Fehler beim Abrufen der Rezeptzutaten:", e);
-                showSnackbar(`Die Zutaten des Rezepts '${recipeName}' konnten nicht geladen werden.`, "error");
-            }
-        }
-
-        function showRecipeSummaryModal(recipeName, ingredients, notes) {
-            const overlay = document.getElementById("recipe-content-overlay");
-            const modal = document.getElementById("recipe-content-modal");
-            const heading = modal.querySelector("h3");
-            const ingredientsList = modal.querySelector("#ingredients-list");
-            const notesSection = modal.querySelector("#notes-section");
-
-            // Setze den Titel des Modals
-            heading.textContent = `Rezeptinhalt von ${recipeName}`;
-
-            // Leere den Inhalt der Zutatenliste und der Notizensektion
-            ingredientsList.innerHTML = "";
-            notesSection.innerHTML = "";
-
-            // Zutaten anzeigen
-            ingredients.forEach(ing => {
-                const li = document.createElement("li");
-                const nameSpan = document.createElement("span");
-                nameSpan.textContent = ing.name;
-                const space = document.createTextNode(" "); // Leerzeichen hinzufügen
-                const amountSpan = document.createElement("span");
-                amountSpan.textContent = `${ing.amount.toFixed(1)} cl`;
-
-                li.appendChild(nameSpan);
-                li.appendChild(space); // Leerzeichen einfügen
-                li.appendChild(amountSpan);
-                ingredientsList.appendChild(li);
+        function fetchRecipeContent(recipeName) {
+            clearCurrentRecipeNotes().then(() => {
+                fetchRecipeSummary(recipeName);
             });
-
-            // Notizen anzeigen, falls vorhanden
-            if (notes && notes.length > 0) {
-                const notesHeader = document.createElement("h4");
-                notesHeader.textContent = "Notizen:";
-                notesSection.appendChild(notesHeader);
-
-                const notesList = document.createElement("ul");
-                notes.forEach(note => {
-                    const li = document.createElement("li");
-                    li.textContent = note;
-                    notesList.appendChild(li);
-                });
-                notesSection.appendChild(notesList);
-            }
-
-            // Modal und Overlay anzeigen
-            overlay.style.display = "block";
-            modal.style.display = "block";
-        }
-
-        function closeRecipeContentModal() {
-            const overlay = document.getElementById("recipe-content-overlay");
-            const modal = document.getElementById("recipe-content-modal");
-            overlay.style.display = "none";
-            modal.style.display = "none";
         }
 
         async function clearCurrentRecipeNotes() {
@@ -1010,15 +961,68 @@
             }
         }
 
-        function fetchRecipeContent(recipeName) {
-            // Zuerst die aktuellen Rezeptnotizen leeren
-            clearCurrentRecipeNotes().then(() => {
-                // Danach die Rezeptzusammenfassung abrufen
-                fetchRecipeSummary(recipeName);
-            });
+        async function fetchRecipeSummary(recipeName) {
+            try {
+                const r = await fetch(`/get_recipe_ingredients?recipe=${encodeURIComponent(recipeName)}`);
+                const res = await r.json();
+                if (!r.ok || res.status !== "success") {
+                    throw new Error(res.message || "Fehler beim Laden der Zutaten.");
+                }
+                showRecipeSummaryModal(recipeName, res.ingredients, res.notes);
+            } catch (e) {
+                console.error("Fehler beim Abrufen der Rezeptzutaten:", e);
+                showSnackbar(`Die Zutaten des Rezepts '${recipeName}' konnten nicht geladen werden.`, "error");
+            }
         }
 
-        // Custom Config Funktionen
+        function showRecipeSummaryModal(recipeName, ingredients, notes) {
+            const overlay = document.getElementById("recipe-content-overlay");
+            const modal = document.getElementById("recipe-content-modal");
+            const heading = modal.querySelector("h3");
+            const ingredientsList = modal.querySelector("#ingredients-list");
+            const notesSection = modal.querySelector("#notes-section");
+
+            heading.textContent = `Rezeptinhalt von ${recipeName}`;
+            ingredientsList.innerHTML = "";
+            notesSection.innerHTML = "";
+
+            ingredients.forEach(ing => {
+                const li = document.createElement("li");
+                const nameSpan = document.createElement("span");
+                nameSpan.textContent = ing.name;
+                const space = document.createTextNode(" ");
+                const amountSpan = document.createElement("span");
+                amountSpan.textContent = `${ing.amount.toFixed(1)} cl`;
+
+                li.appendChild(nameSpan);
+                li.appendChild(space);
+                li.appendChild(amountSpan);
+                ingredientsList.appendChild(li);
+            });
+
+            if (notes && notes.length > 0) {
+                const notesHeader = document.createElement("h4");
+                notesHeader.textContent = "Notizen:";
+                notesSection.appendChild(notesHeader);
+
+                const notesList = document.createElement("ul");
+                notes.forEach(note => {
+                    const li = document.createElement("li");
+                    li.textContent = note;
+                    notesList.appendChild(li);
+                });
+                notesSection.appendChild(notesList);
+            }
+
+            overlay.style.display = "block";
+            modal.style.display = "block";
+        }
+
+        function closeRecipeContentModal() {
+            document.getElementById("recipe-content-overlay").style.display = "none";
+            document.getElementById("recipe-content-modal").style.display = "none";
+        }
+
         async function openCustomConfig(recipeName) {
             currentRecipeForConfig = recipeName;
             try {
@@ -1055,7 +1059,7 @@
                 range.max = (ing.amount * 2).toFixed(1);
                 range.step = "0.1";
                 range.value = ing.amount.toFixed(1);
-                ing.current = ing.amount; 
+                ing.current = ing.amount;
                 range.addEventListener("input", () => {
                     spanVal.textContent = `${range.value} cl`;
                     ing.current = parseFloat(range.value);
@@ -1072,21 +1076,20 @@
         }
 
         function closeCustomConfigModal() {
-            const overlay = document.getElementById("custom-config-overlay");
-            const modal = document.getElementById("custom-config-modal");
-            overlay.style.display = "none"; // Versteckt den Overlay-Hintergrund
-            modal.style.display = "none"; // Versteckt das Modal selbst
-            currentCustomIngredients = []; // Reset der Zutaten
-            currentRecipeForConfig = ""; // Reset des aktuellen Rezepts
+            document.getElementById("custom-config-overlay").style.display = "none";
+            document.getElementById("custom-config-modal").style.display = "none";
+            currentCustomIngredients = [];
+            currentRecipeForConfig = "";
         }
-
 
         async function startCustomConfigRecipe() {
             const data = {
                 name: `temp_recipe_${Date.now()}`,
-                alcoholData: currentCustomIngredients.map(i => ({ alcohol: i.name, amount: i.current || i.amount }))
+                alcoholData: currentCustomIngredients.map(i => ({
+                    alcohol: i.name,
+                    amount: i.current || i.amount
+                }))
             };
-
             try {
                 const r = await fetch("/generate_and_run_temp_recipe", {
                     method: "POST",
@@ -1095,7 +1098,7 @@
                 });
                 const res = await r.json();
                 if (r.ok) {
-                    showSnackbar(`Temporäres Rezept wurde erfolgreich gestartet!`, "success");
+                    showSnackbar("Temporäres Rezept wurde erfolgreich gestartet!", "success");
                     startProgressTracking(data.name + ".txt");
                 } else {
                     throw new Error(res.message || "Fehler beim Starten des temporären Rezepts.");
@@ -1103,14 +1106,12 @@
             } catch (e) {
                 showSnackbar(e.message, "error");
             } finally {
-                closeCustomConfigModal(); // Immer schließen, unabhängig vom Erfolg
+                closeCustomConfigModal();
             }
         }
 
-        // Globale Variable zur Verfolgung des aktuellen ungültigen Rezepts
         let currentInvalidRecipe = "";
 
-        // Funktion zum Anzeigen der Gründe für die Ungültigkeit und Setzen des aktuellen Rezepts
         function showInvalidReasons(recipeName) {
             currentInvalidRecipe = recipeName;
             const reasonsDiv = document.getElementById(`reasons-${recipeName}`);
@@ -1122,11 +1123,9 @@
                 console.error("Ein erforderliches Element wurde nicht gefunden.");
                 return;
             }
-
             const reasons = reasonsDiv.textContent.trim();
             if (reasons) {
-                // Bereinigen und Gründe formatieren
-                reasonsList.innerHTML = ""; // Vorherige Inhalte entfernen
+                reasonsList.innerHTML = "";
                 reasons.split(",").forEach(reason => {
                     const formattedReason = reason
                         .replace("Kein Eintrag für '", "")
@@ -1138,8 +1137,6 @@
                         reasonsList.appendChild(li);
                     }
                 });
-
-                // Modal anzeigen
                 overlay.style.display = "block";
                 modal.style.display = "block";
             } else {
@@ -1147,27 +1144,21 @@
             }
         }
 
-        // Event Listener für den "Ohne ausführen" Button
-        document.getElementById("run-without-button").addEventListener("click", function() {
+        document.getElementById("run-without-button").addEventListener("click", function () {
             const recipeName = currentInvalidRecipe;
             if (!recipeName) {
                 showSnackbar("Rezeptname fehlt.", "error");
                 return;
             }
-
-            // Fehlende Zutaten aus dem Modal extrahieren
             const reasonsList = document.getElementById("missing-drinks-list");
             const missingIngredients = [];
             reasonsList.querySelectorAll("li").forEach(li => {
                 missingIngredients.push(li.textContent.trim());
             });
-
             if (missingIngredients.length === 0) {
                 showSnackbar("Keine fehlenden Zutaten gefunden.", "error");
                 return;
             }
-
-            // POST-Anfrage an /run_recipe_without_missing senden
             fetch("/run_recipe_without_missing", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1181,7 +1172,6 @@
                 if (data.status === "success") {
                     showSnackbar(data.message, "success");
                     startProgressTracking(recipeName);
-                    // Modal schließen
                     closeMissingDrinksModal();
                 } else {
                     showSnackbar(data.message, "error");
@@ -1193,31 +1183,18 @@
             });
         });
 
-
-        // Funktion zum Schließen des fehlenden Getränke-Modals
         function closeMissingDrinksModal() {
-            const overlay = document.getElementById("missing-drinks-overlay");
-            const modal = document.getElementById("missing-drinks-modal");
-
-            if (!overlay || !modal) {
-                console.error("Overlay oder Modal nicht gefunden.");
-                return;
-            }
-
-            overlay.style.display = "none";
-            modal.style.display = "none";
+            document.getElementById("missing-drinks-overlay").style.display = "none";
+            document.getElementById("missing-drinks-modal").style.display = "none";
         }
 
-
-        // Suchfunktion
         function setupSearchFunctionality() {
             const searchInput = document.getElementById("search-input");
             searchInput.addEventListener("input", function() {
                 const query = this.value.toLowerCase();
-                const availableDrinksContainer = document.querySelectorAll(".grid-container")[0]; // Verfügbare Drinks
-                const unavailableDrinksContainer = document.querySelectorAll(".grid-container")[1]; // Nicht verfügbare Drinks
+                const availableDrinksContainer = document.querySelectorAll(".grid-container")[0];
+                const unavailableDrinksContainer = document.querySelectorAll(".grid-container")[1];
 
-                // Funktion zum Filtern von Grid-Items
                 function filterGridItems(container) {
                     const gridItems = container.querySelectorAll(".grid-item");
                     gridItems.forEach(item => {
@@ -1229,7 +1206,6 @@
                         }
                     });
                 }
-
                 filterGridItems(availableDrinksContainer);
                 filterGridItems(unavailableDrinksContainer);
             });
