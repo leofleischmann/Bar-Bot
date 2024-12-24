@@ -290,7 +290,7 @@ void calibratePlatform() {
             stepper.runSpeed();
         } else {
             // Sobald der Pin HIGH meldet, kurz warten, um Prellen zu vermeiden
-            delay(50); 
+            delay(100); 
             // Jetzt erneut prüfen, ob der Schalter immer noch HIGH ist
             if (digitalRead(LIMIT_SWITCH1_PIN) == HIGH) {
                 // Debounce-Bestätigung: Schalter wirklich ausgelöst
@@ -313,7 +313,7 @@ void calibratePlatform() {
         if (digitalRead(LIMIT_SWITCH2_PIN) == LOW) {
             stepper.runSpeed();
         } else {
-            delay(50);
+            delay(100);
             if (digitalRead(LIMIT_SWITCH2_PIN) == HIGH) {
                 break;
             }
