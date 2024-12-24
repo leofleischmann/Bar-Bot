@@ -40,26 +40,31 @@ def find_esp_port():
 
 def init_serial():
     global ser, esp_connected
-    with serial_lock:
-        if ser is not None and ser.is_open:
-            return  # Bereits verbunden
+    max_retries = 10
+    retry_interval = 10  # in Sekunden
 
-        # Nach dem ESP-Port suchen
+    for attempt in range(max_retries):
         esp_port = find_esp_port()
         if esp_port is None:
-            print("Kein ESP gefunden. Bitte überprüfen Sie die Verbindung.")
-            esp_connected = False
-            ser = None
-            return
+            print(f"Kein ESP gefunden. Warte {retry_interval} Sekunden und versuche es erneut... ({attempt+1}/{max_retries})")
+            time.sleep(retry_interval)
+            continue
 
         try:
             ser = serial.Serial(esp_port, BAUDRATE, timeout=2)
             esp_connected = True
             print(f"ESP verbunden an {esp_port}")
+            return
         except serial.SerialException as e:
+            print(f"ESP nicht verbunden: {e}")
             esp_connected = False
             ser = None
-            print(f"ESP nicht verbunden: {e}")
+
+        print(f"Verbindung fehlgeschlagen. Warte {retry_interval} Sekunden und versuche es erneut... ({attempt+1}/{max_retries})")
+        time.sleep(retry_interval)
+
+    print("Nach mehreren Versuchen konnte keine Verbindung zum ESP hergestellt werden.")
+
 
 def send_command_to_esp(command_dict):
     global ser, esp_connected
