@@ -1196,7 +1196,7 @@ if __name__ == "__main__":
         print("Kein WLAN erkannt. Starte WLAN-QR-Code-Scanner...")
         try:
             # Prozess im Hintergrund starten
-            subprocess.Popen(["python3", "find_wify.py"])
+            subprocess.Popen(["sudo", "python", "find_wify.py"])
             # Optional: Wenn du willst, dass server.py erst wartet, bis
             # eine Verbindung da ist, kannst du stattdessen subprocess.call() nehmen.
             # Aber meist willst du server.py parallel weiterlaufen lassen.
