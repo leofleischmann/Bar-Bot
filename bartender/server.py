@@ -65,6 +65,17 @@ def init_serial():
 
     print("Nach mehreren Versuchen konnte keine Verbindung zum ESP hergestellt werden.")
 
+def is_wifi_connected():
+    """
+    Gibt True zurück, wenn WLAN verbunden ist, sonst False.
+    """
+    try:
+        # Beispiel: Wenn 'iwgetid' einen ESSID zurückgibt, sind wir verbunden
+        result = subprocess.check_output(["iwgetid", "-r"]).decode("utf-8").strip()
+        return len(result) > 0
+    except Exception:
+        return False
+
 
 def send_command_to_esp(command_dict):
     global ser, esp_connected
@@ -1180,5 +1191,16 @@ def reconnect_esp():
 
 if __name__ == "__main__":
     init_serial()
-    
+
+    if not is_wifi_connected():
+        print("Kein WLAN erkannt. Starte WLAN-QR-Code-Scanner...")
+        try:
+            # Prozess im Hintergrund starten
+            subprocess.Popen(["python3", "find_wify.py"])
+            # Optional: Wenn du willst, dass server.py erst wartet, bis
+            # eine Verbindung da ist, kannst du stattdessen subprocess.call() nehmen.
+            # Aber meist willst du server.py parallel weiterlaufen lassen.
+        except Exception as e:
+            print(f"Fehler beim Starten von find_wify.py: {e}")
+
     app.run(host="0.0.0.0", port=5001, debug=True)
