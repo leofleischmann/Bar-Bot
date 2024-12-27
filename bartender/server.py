@@ -1190,17 +1190,17 @@ def reconnect_esp():
 
 
 if __name__ == "__main__":
-    init_serial()
+    # 1) Starte den Webserver sofort
+    print("Starte Flask-Server...")
+    Thread(target=init_serial).start()
 
+    # 2) WLAN-Scanner-Start (wenn gewünscht)
     if not is_wifi_connected():
         print("Kein WLAN erkannt. Starte WLAN-QR-Code-Scanner...")
         try:
-            # Prozess im Hintergrund starten
             subprocess.Popen(["sudo", "python", "find_wify.py"])
-            # Optional: Wenn du willst, dass server.py erst wartet, bis
-            # eine Verbindung da ist, kannst du stattdessen subprocess.call() nehmen.
-            # Aber meist willst du server.py parallel weiterlaufen lassen.
         except Exception as e:
             print(f"Fehler beim Starten von find_wify.py: {e}")
 
+    # 3) Und nun: Flask-Server läuft (unabhängig vom init_serial())
     app.run(host="0.0.0.0", port=5001, debug=True)
