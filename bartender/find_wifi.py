@@ -82,55 +82,31 @@ def write_wpa_supplicant_conf(wifi_info):
     encryption = wifi_info["encryption"]
     hidden = wifi_info["hidden"]
 
-    # Standardwerte
-    proto_line = "proto=RSN"            # RSN für WPA2
-    key_mgmt_line = "key_mgmt=WPA-PSK"
-    pairwise_line = "pairwise=CCMP"
-    auth_alg_line = "auth_alg=OPEN"
-    hidden_line = ""
-
-    # Falls Hidden-Netz, setze scan_ssid=1
-    if hidden:
-        hidden_line = "    scan_ssid=1\n"
-
-    # Einfacher Beispiel-Umgang mit encryption:
-    # - WPA oder WPA2 -> RSN, WPA-PSK
-    # - WEP -> key_mgmt=NONE; (hier müsstest du eigentlich WEP-Parameter hinterlegen)
-    # - nopass -> key_mgmt=NONE
-    if encryption in ("WPA", "WPA2"):
-        # Standard bleibt RSN / WPA-PSK
-        pass
-    elif encryption == "WEP":
-        proto_line = ""
-        key_mgmt_line = "key_mgmt=NONE"
-        pairwise_line = ""
-        auth_alg_line = "auth_alg=SHARED"  # z. B. WEP
-        # -> Achtung: in wpa_supplicant ist WEP etwas tricky
-    elif encryption == "NOPASS":
-        proto_line = ""
-        key_mgmt_line = "key_mgmt=NONE"
-        pairwise_line = ""
-        auth_alg_line = ""
-
-    content = f"""\
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    # Basis-Konfiguration
+    config = """country=de
 update_config=1
-country=DE
+ctrl_interface=/var/run/wpa_supplicant
 
-network={{
-    ssid="{ssid}"
-    psk="{password}"
-    {proto_line}
-    {key_mgmt_line}
-    {pairwise_line}
-    {auth_alg_line}
-{hidden_line}}}
+network={
 """
+
+    # scan_ssid hinzufügen, wenn das Netzwerk versteckt ist
+    if hidden:
+        config += "    scan_ssid=1\n"
+
+    # SSID hinzufügen
+    config += f'    ssid="{ssid}"\n'
+
+    # psk hinzufügen, falls nicht "nopass"
+    if encryption.lower() != "nopass":
+        config += f'    psk="{password}"\n'
+
+    config += "}\n"
 
     conf_path = "/etc/wpa_supplicant/wpa_supplicant.conf"
     try:
         with open(conf_path, "w") as f:
-            f.write(content.strip() + "\n")
+            f.write(config)
         print(f"[INFO] wpa_supplicant.conf für SSID='{ssid}' erstellt.")
         return conf_path
     except Exception as e:
@@ -175,27 +151,27 @@ def main():
     4) Beenden, wenn erfolgreich verbunden.
     """
 
-    print("[INFO] Starte find_wifi.py...")
+    print("[INFO] Starte find_wifi.py...", flush=True)
 
     # Prüfen, ob bereits Internet/WLAN aktiv ist
     if is_connected():
-        print("[INFO] WLAN bereits verbunden oder Internetzugang vorhanden. Breche ab.")
+        print("[INFO] WLAN bereits verbunden oder Internetzugang vorhanden. Breche ab.", flush=True)
         return
 
     # Kamera initialisieren
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("[ERROR] Kamera konnte nicht geöffnet werden!")
+        print("[ERROR] Kamera konnte nicht geöffnet werden!", flush=True)
         return
 
-    print("[INFO] Kamera geöffnet. Suche nach WLAN-QR-Codes... (Strg+C zum Abbrechen)")
+    print("[INFO] Kamera geöffnet. Suche nach WLAN-QR-Codes... (Strg+C zum Abbrechen)", flush=True)
 
     last_apply_time = 0
     try:
         while True:
             # Ist evtl. inzwischen WLAN da?
             if is_connected():
-                print("[INFO] Erfolgreich verbunden! Beende find_wifi.py.")
+                print("[INFO] Erfolgreich verbunden! Beende find_wifi.py.", flush=True)
                 break
 
             ret, frame = cap.read()
@@ -204,7 +180,12 @@ def main():
                 continue
 
             # Optional: In Graustufen wandeln (manchmal bessere Erkennungsrate)
-            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            try:
+                gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            except Exception as e:
+                print(f"[ERROR] Fehler beim Konvertieren in Graustufen: {e}", flush=True)
+                time.sleep(0.5)
+                continue
 
             # QR-Codes analysieren
             decoded_objs = decode(gray_frame)
@@ -217,27 +198,27 @@ def main():
                             now = time.time()
                             # Warte 10s, damit wir nicht in einer Schleife permanent neu schreiben
                             if now - last_apply_time > 10:
-                                print(f"[INFO] WLAN-QR-Code gefunden!")
-                                print(f"      SSID   = '{wifi_info['ssid']}'")
-                                print(f"      PASS   = '{wifi_info['password']}'")
-                                print(f"      ENC    = '{wifi_info['encryption']}'")
-                                print(f"      HIDDEN = {wifi_info['hidden']}")
+                                print(f"[INFO] WLAN-QR-Code gefunden!", flush=True)
+                                print(f"      SSID   = '{wifi_info['ssid']}'", flush=True)
+                                print(f"      PASS   = '{wifi_info['password']}'", flush=True)
+                                print(f"      ENC    = '{wifi_info['encryption']}'", flush=True)
+                                print(f"      HIDDEN = {wifi_info['hidden']}", flush=True)
 
                                 conf_path = write_wpa_supplicant_conf(wifi_info)
                                 if conf_path:
                                     apply_wpa_conf(conf_path)
                                     last_apply_time = now
-                                    print("[INFO] WLAN-Konfiguration erfolgreich angewendet. Beende Kamera...")
+                                    print("[INFO] WLAN-Konfiguration erfolgreich angewendet. Beende Kamera...", flush=True)
                                     # Beende die Schleife nach erfolgreichem Scan
                                     return  # Oder break, je nach gewünschtem Verhalten
                             else:
-                                print("[INFO] WLAN-QR-Code erneut erkannt, warte kurz...")
+                                print("[INFO] WLAN-QR-Code erneut erkannt, warte kurz...", flush=True)
                         else:
-                            print("[INFO] QR-Code erkannt, aber kein gültiges WLAN-Format.")
+                            print("[INFO] QR-Code erkannt, aber kein gültiges WLAN-Format.", flush=True)
                     else:
-                        print(f"[INFO] Barcode gefunden (Typ={obj.type}), kein QR-CODE.")
+                        print(f"[INFO] Barcode gefunden (Typ={obj.type}), kein QR-CODE.", flush=True)
             else:
-                print("[INFO] Kein QR-Code im Bild...")
+                print("[INFO] Kein QR-Code im Bild...", flush=True)
 
             # OPTIONAL: Live-Bild anzeigen:
             # cv2.imshow("WLAN QR Code Scanner", gray_frame)
@@ -247,8 +228,12 @@ def main():
             time.sleep(0.5)
 
     except KeyboardInterrupt:
-        print("\n[INFO] Manuell abgebrochen.")
+        print("\n[INFO] Manuell abgebrochen.", flush=True)
 
     finally:
         cap.release()
         cv2.destroyAllWindows()
+        print("[INFO] Kamera freigegeben und Fenster geschlossen.", flush=True)
+
+if __name__ == "__main__":
+    main()
