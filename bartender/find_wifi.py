@@ -63,7 +63,7 @@ def parse_wifi_qr(qr_string):
     # Gültig, wenn zumindest SSID und Passwort vorhanden oder "nopass" (je nach Fall).
     # Wir gehen hier davon aus, dass wir min. SSID + Passwort brauchen.
     # Falls "nopass", könntest du 'password' leer lassen.
-    if wifi_data["ssid"] and wifi_data["password"]:
+    if wifi_data["ssid"] and (wifi_data["password"] or wifi_data["encryption"] == "NOPASS"):
         return wifi_data
     return None
 
@@ -163,7 +163,6 @@ def apply_wpa_conf(conf_path):
     time.sleep(5)
     print("[INFO] WLAN-Konfiguration angewendet.")
 
-
 ########################################
 # Hauptprogramm
 ########################################
@@ -227,7 +226,10 @@ def main():
                                 conf_path = write_wpa_supplicant_conf(wifi_info)
                                 if conf_path:
                                     apply_wpa_conf(conf_path)
-                                last_apply_time = now
+                                    last_apply_time = now
+                                    print("[INFO] WLAN-Konfiguration erfolgreich angewendet. Beende Kamera...")
+                                    # Beende die Schleife nach erfolgreichem Scan
+                                    return  # Oder break, je nach gewünschtem Verhalten
                             else:
                                 print("[INFO] WLAN-QR-Code erneut erkannt, warte kurz...")
                         else:
@@ -250,6 +252,3 @@ def main():
     finally:
         cap.release()
         cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
