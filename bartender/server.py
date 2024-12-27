@@ -1196,11 +1196,7 @@ if __name__ == "__main__":
 
     # 2) WLAN-Scanner-Start (wenn gewünscht)
     if not is_wifi_connected():
-        print("Kein WLAN erkannt. Starte WLAN-QR-Code-Scanner...")
-        try:
-            subprocess.Popen(["sudo", "python", "find_wifi.py"])
-        except Exception as e:
-            print(f"Fehler beim Starten von find_wify.py: {e}")
+        print("Kein WLAN erkannt")
 
     # 3) Und nun: Flask-Server läuft (unabhängig vom init_serial())
     app.run(host="0.0.0.0", port=5001, debug=True)
