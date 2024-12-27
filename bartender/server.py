@@ -1198,7 +1198,7 @@ if __name__ == "__main__":
     if not is_wifi_connected():
         print("Kein WLAN erkannt. Starte WLAN-QR-Code-Scanner...")
         try:
-            subprocess.Popen(["sudo", "python", "find_wify.py"])
+            subprocess.Popen(["sudo", "python", "find_wifi.py"])
         except Exception as e:
             print(f"Fehler beim Starten von find_wify.py: {e}")
 
