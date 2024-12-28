@@ -52,6 +52,12 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 - Have Fun :)
 
 # About the Website:
-![index.html](https://github.com/leofleischmann/Bar-Bot/blob/e313378813ab9280bc14a874318afeaef0c4d593/Images/index_V2.png?raw=true)
-![config.html](https://github.com/leofleischmann/Bar-Bot/blob/17757d321988ad494f03b8d748e4021ac19225e4/Images/config.png?raw=true)
-![rezepte.html](https://github.com/leofleischmann/Bar-Bot/blob/44d6232b5e2ab86a19f484cb488e698d56f0cabf/Images/rezepte.png?raw=true)
+![index1.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/index1.png?raw=true)
+![index2.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/index2.png?raw=true)
+![index3.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/index3.png?raw=true)
+![index4.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/index4.png?raw=true)
+![index5.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/index5.png?raw=true)
+![config1.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/config1.png?raw=true)
+![calib1.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/calib1.png?raw=true)
+![rezepte1.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/rezepte1.png?raw=true)
+![rezepte2.html](https://github.com/leofleischmann/Bar-Bot/blob/c0456712a47b8941aefea4feb90bd9ac971c621a/Images/rezepte2.png?raw=true)
