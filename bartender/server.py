@@ -1194,9 +1194,18 @@ if __name__ == "__main__":
     print("Starte Flask-Server...")
     Thread(target=init_serial).start()
 
-    # 2) WLAN-Scanner-Start (wenn gewünscht)
+    # 2) WLAN-Scanner-Start
     if not is_wifi_connected():
-        print("Kein WLAN erkannt")
+        # Hotspot erstellen und Nachricht ausgeben
+        subprocess.run([
+            'sudo', 'nmcli', 'device', 'wifi', 'hotspot',
+            'ssid', barbot,
+            'password', 12345678,
+            'ifname', 'wlan0'
+        ], check=True)
+        print("Kein WLAN erkannt und Hotspot wurde erstellt.")
+    else:
+        print("WLAN ist verbunden.")
 
     # 3) Und nun: Flask-Server läuft (unabhängig vom init_serial())
     app.run(host="0.0.0.0", port=5001, debug=True)
