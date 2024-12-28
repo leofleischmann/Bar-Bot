@@ -1204,6 +1204,12 @@ if __name__ == "__main__":
             'ifname', 'wlan0'
         ], check=True)
         print("Kein WLAN erkannt und Hotspot wurde erstellt.")
+        
+        # wifi.py ausführen
+        subprocess.run([
+            'python', 'wifi.py'
+        ], check=True)
+        print("wifi.py wurde erfolgreich ausgeführt.")
     else:
         print("WLAN ist verbunden.")
 
