@@ -37,7 +37,7 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 - Woodwork
 - Final Adjustments
 
-# Total Hardware cost (not including 3D printing material): ~315€
+# Total Hardware cost (not including 3D printing material): to much
 
 # Here are a few images
 ![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/aef47b5e8c036a115e24fcea56c180e6691d0192/Progress_report.jpeg?raw=true)
