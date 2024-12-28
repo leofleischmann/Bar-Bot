@@ -1207,7 +1207,7 @@ if __name__ == "__main__":
         
         # wifi.py ausführen
         subprocess.run([
-            'python', 'wifi.py'
+            'sudo', 'python', 'wifi.py'
         ], check=True)
         print("wifi.py wurde erfolgreich ausgeführt.")
     else:
