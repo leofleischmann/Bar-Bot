@@ -34,9 +34,8 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 - (Done at 22th November 2024)
 
 # Currently working on:
-- Waiting to buy liquor dispensers
-- Software for additional pumps that can be configured
 - Woodwork
+- Final Adjustments
 
 # Total Hardware cost (not including 3D printing material): ~315€
 
@@ -44,13 +43,13 @@ The Raspberry Pi takes the heavy lifting, by sending the right commands to the E
 ![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/aef47b5e8c036a115e24fcea56c180e6691d0192/Progress_report.jpeg?raw=true)
 ![As of 22th November 2024](https://github.com/leofleischmann/Bar-Bot/blob/81d38c1ef765c1620e4a5a3b449e7f446b287d88/AutoBarTender_constructed%20v13.png?raw=true)
 
-# Installation
-Simply copy the Repo on your Raspberry Pi
-Make sure Port 5001 and 5002 are not in use
-Create a service that starts the server.py script automatically
-You can now find the webserver on port 5001.
-When no Wifi is enabled, a HotSpot is created named "barbot" with password "12345678". You can connect and then configure a new Wifi on Port 5002.
-Have Fun :)
+# Installation on the Raspberry Pi
+- Simply copy the Repo on your Raspberry Pi
+- Make sure Port 5001 and 5002 are not in use
+- Create a service that starts the server.py script automatically
+- You can now find the webserver on port 5001.
+- When no Wifi is enabled, a HotSpot is created named "barbot" with password "12345678". You can connect and then configure a new Wifi on Port 5002.
+- Have Fun :)
 
 # About the Website:
 ![index.html](https://github.com/leofleischmann/Bar-Bot/blob/e313378813ab9280bc14a874318afeaef0c4d593/Images/index_V2.png?raw=true)
