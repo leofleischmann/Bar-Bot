@@ -67,19 +67,24 @@
             background-color: red;
         }
 
-        /* Neuer Stil für den Reconnect-Button */
-        #reconnect-button {
+        /* Neuer Stil für den Reconnect-Button im Main-Bereich */
+        #reconnect-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #reconnect-button-main {
             background-color: #ffc107;
             color: #333;
             border: none;
             border-radius: 5px;
-            padding: 5px 10px;
-            margin-left: 10px;
-            font-size: 14px;
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
-        #reconnect-button:hover {
+        #reconnect-button-main:hover {
             background-color: #e0a800;
         }
 
@@ -322,41 +327,6 @@
             background-color: #0056b3;
         }
 
-        .snackbar {
-            visibility: hidden;
-            min-width: 300px;
-            max-width: 90%;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 8px;
-            padding: 16px 20px;
-            position: fixed;
-            z-index: 1000;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 16px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            opacity: 0;
-            transition: opacity 0.3s ease, bottom 0.3s ease;
-        }
-
-        .snackbar.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
-
-        .snackbar.error {
-            background-color: #f44336;
-        }
-
-        .snackbar.success {
-            background-color: #4caf50;
-        }
-
-        /* Gemeinsame Klasse für Aktions-Buttons */
         .action-button {
             background-color: #ffc107; /* Amber-Farbe für Aufmerksamkeit */
             color: white;
@@ -603,6 +573,42 @@
                 width: 100%;
             }
         }
+
+        .snackbar {
+            visibility: hidden;
+            min-width: 300px;
+            max-width: 90%;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px 20px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease, bottom 0.3s ease;
+        }
+
+        .snackbar.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        .snackbar.error {
+            background-color: #f44336;
+        }
+
+        .snackbar.success {
+            background-color: #4caf50;
+        }
+
+        /* ... Weitere CSS-Regeln für Modals, Formulare usw. ... */
     </style>
 </head>
 <body>
@@ -618,13 +624,19 @@
                 <span class="status disconnected">
                     <span class="indicator"></span> ESP nicht verbunden
                 </span>
-                <button id="reconnect-button" onclick="reconnectESP()">Neu verbinden</button>
                 {% endif %}
             </div>
         </div>
     </header>
 
     <main>
+        <!-- Neuer Container für den Reconnect-Button -->
+        {% if not esp_connected %}
+        <div id="reconnect-container">
+            <button id="reconnect-button-main" onclick="reconnectESP()">Neu verbinden</button>
+        </div>
+        {% endif %}
+        
         <div id="search-container">
             <input type="text" id="search-input" placeholder="Nach Drinks suchen..." />
         </div>
@@ -753,15 +765,33 @@
                             <span class="status connected">
                                 <span class="indicator"></span> ESP verbunden
                             </span>
-                            <!-- Button NICHT anzeigen, wenn verbunden -->
                         `;
+                        // Verstecke den Reconnect-Button im Main-Bereich, falls sichtbar
+                        const reconnectContainer = document.getElementById("reconnect-container");
+                        if (reconnectContainer) {
+                            reconnectContainer.style.display = "none";
+                        }
                     } else {
                         statusElement.innerHTML = `
                             <span class="status disconnected">
                                 <span class="indicator"></span> ESP nicht verbunden
                             </span>
-                            <button id="reconnect-button" onclick="reconnectESP()">Neu verbinden</button>
                         `;
+                        // Zeige den Reconnect-Button im Main-Bereich
+                        let reconnectContainer = document.getElementById("reconnect-container");
+                        if (!reconnectContainer) {
+                            // Falls der Container noch nicht existiert, erstelle ihn
+                            reconnectContainer = document.createElement("div");
+                            reconnectContainer.id = "reconnect-container";
+                            reconnectContainer.innerHTML = `
+                                <button id="reconnect-button-main" onclick="reconnectESP()">Neu verbinden</button>
+                            `;
+                            // Fügen Sie den Container am Anfang des Main-Bereichs hinzu
+                            const main = document.querySelector("main");
+                            main.insertBefore(reconnectContainer, main.firstChild);
+                        } else {
+                            reconnectContainer.style.display = "block";
+                        }
                     }
                 })
                 .catch(error => {
@@ -772,14 +802,33 @@
                         <span class="status disconnected">
                             <span class="indicator"></span> ESP nicht verbunden
                         </span>
-                        <button id="reconnect-button" onclick="reconnectESP()">Neu verbinden</button>
                     `;
+                    // Zeige den Reconnect-Button im Main-Bereich
+                    let reconnectContainer = document.getElementById("reconnect-container");
+                    if (!reconnectContainer) {
+                        reconnectContainer = document.createElement("div");
+                        reconnectContainer.id = "reconnect-container";
+                        reconnectContainer.innerHTML = `
+                            <button id="reconnect-button-main" onclick="reconnectESP()">Neu verbinden</button>
+                        `;
+                        const main = document.querySelector("main");
+                        main.insertBefore(reconnectContainer, main.firstChild);
+                    } else {
+                        reconnectContainer.style.display = "block";
+                    }
                 });
         }
         updateESPStatus();
         setInterval(updateESPStatus, 5000);
 
         function reconnectESP() {
+            // Sofortiges Ausblenden des Reconnect-Buttons nach dem Klicken
+            const reconnectContainer = document.getElementById("reconnect-container");
+            if (reconnectContainer) {
+                reconnectContainer.style.display = "none";
+            }
+
+            // Sende den Reconnect-Request
             fetch("/reconnect_esp", { method: "POST" })
                 .then(r => r.json())
                 .then(data => {
@@ -788,10 +837,18 @@
                         updateESPStatus();
                     } else {
                         showSnackbar(data.message, "error");
+                        // Zeige den Reconnect-Button wieder an, wenn der Reconnect fehlschlägt
+                        if (reconnectContainer) {
+                            reconnectContainer.style.display = "block";
+                        }
                     }
                 })
                 .catch(err => {
                     showSnackbar("Fehler beim Reconnect-Versuch.", "error");
+                    // Zeige den Reconnect-Button wieder an, wenn der Reconnect fehlschlägt
+                    if (reconnectContainer) {
+                        reconnectContainer.style.display = "block";
+                    }
                 });
         }
 
