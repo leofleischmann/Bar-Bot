@@ -1,3 +1,6 @@
+# Credit to this Blog Post for the Idea: https://www.raspberrypi.com/tutorials/host-a-hotel-wifi-hotspot/
+# I changed it a bit, but its pretty much that technique
+
 from flask import Flask, request
 import subprocess
 
