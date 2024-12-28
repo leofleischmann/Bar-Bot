@@ -1199,8 +1199,8 @@ if __name__ == "__main__":
         # Hotspot erstellen und Nachricht ausgeben
         subprocess.run([
             'sudo', 'nmcli', 'device', 'wifi', 'hotspot',
-            'ssid', barbot,
-            'password', 12345678,
+            'ssid', 'barbot',
+            'password', '12345678',
             'ifname', 'wlan0'
         ], check=True)
         print("Kein WLAN erkannt und Hotspot wurde erstellt.")
